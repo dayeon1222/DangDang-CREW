@@ -23,7 +23,7 @@ export default function RootLayout({
         {/*  데스크톱용 상단 바 고정 */}
         <DesktopHeader />
 
-        <main className="flex-1 pb-16 md:pb-0">{children}</main>
+        <main className="flex-1 pt-[100px] pb-16 md:pb-0">{children}</main>
 
         {/* 모바일용 하단 탭 바 고정 */}
         <MobileTabBar />
