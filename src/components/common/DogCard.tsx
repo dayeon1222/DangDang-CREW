@@ -1,19 +1,8 @@
 import { MapPin, Users, Info, Clock } from "lucide-react";
+import { Dog } from "@/types/dog";
 
-interface DogCardProps {
-  dog: {
-    title: string;
-    name: string;
-    breed: string;
-    age: number;
-    location: string;
-    hashtags: string[];
-    currentParticipants: number; // 현재 참여 인원
-    maxParticipants: number; // 최대 인원
-    note: string;
-    time: string;
-    image: string;
-  };
+export interface DogCardProps {
+  dog: Dog;
 }
 
 export default function DogCard({ dog }: DogCardProps) {
