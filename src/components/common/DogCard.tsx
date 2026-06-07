@@ -1,13 +1,16 @@
-import Image from "next/image";
+import { MapPin, Users, Info, Clock } from "lucide-react";
 
 interface DogCardProps {
   dog: {
+    title: string;
     name: string;
     breed: string;
     age: number;
-    type: string;
     location: string;
-    status: string;
+    hashtags: string[];
+    currentParticipants: number; // 현재 참여 인원
+    maxParticipants: number; // 최대 인원
+    note: string;
     time: string;
     image: string;
   };
@@ -26,23 +29,42 @@ export default function DogCard({ dog }: DogCardProps) {
       </div>
 
       {/* 정보 영역 */}
-      <div className="flex flex-col justify-between py-1 w-full">
+      <div className="flex flex-col justify-between py-1 w-full gap-1">
         <div className="flex flex-col gap-0.5">
-          <h3 className="font-bold text-gray-900">{dog.name}</h3>
-          <p className="text-sm text-gray-500">
-            {dog.type} · {dog.age}살 · {dog.breed}
+          <h3 className="font-bold text-gray-900 truncate">{dog.title}</h3>
+          <p className="text-sm text-gray-600 font-medium">
+            {dog.name} ({dog.age}살, {dog.breed})
           </p>
+
+          {/* 장소 & 참여 인원 */}
+          <div className="flex items-center gap-3 text-xs text-gray-500">
+            <span className="flex items-center gap-1">
+              <MapPin size={14} /> {dog.location}
+            </span>
+            <span className="flex items-center gap-1">
+              <Users size={14} /> {dog.currentParticipants}/
+              {dog.maxParticipants}
+            </span>
+          </div>
         </div>
 
-        {/* 하단 정보 (태그 + 시간) */}
-        <div className="flex items-center justify-between mt-1">
-          <div className="flex items-center gap-2">
-            <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs rounded-md">
-              {dog.status}
+        {/* 해시태그 */}
+        <div className="flex flex-wrap gap-1">
+          {dog.hashtags.map((tag) => (
+            <span key={tag} className="text-xs text-blue-500">
+              #{tag}
             </span>
-            <span className="text-xs text-gray-400">{dog.location}</span>
+          ))}
+        </div>
+
+        {/* 특이사항 & 시간 */}
+        <div className="flex items-center justify-between mt-1">
+          <div className="flex items-center gap-1 text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded">
+            <Info size={12} /> {dog.note}
           </div>
-          <span className="text-xs text-gray-400">{dog.time}</span>
+          <span className="flex items-center gap-1 text-xs text-gray-400 shrink-0 ml-2">
+            <Clock size={12} /> {dog.time}
+          </span>
         </div>
       </div>
     </div>

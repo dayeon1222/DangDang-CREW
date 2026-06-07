@@ -5,27 +5,19 @@ export default function HomePage() {
   // 임시 데이터
   const dogList = [
     {
-      name: "귀염둥이 멍멍이",
+      title: "송도 센트럴파크 산책해요!",
+      name: "멍멍이",
       breed: "리트리버",
       age: 2,
-      type: "대형견",
       location: "인천 연수구",
-      status: "입양 가능",
+      hashtags: ["산책", "대형견"],
+      currentParticipants: 3,
+      maxParticipants: 10,
+      note: "입질 없고 순해요!",
       time: "5분 전",
       image: "/dog-placeholder.jpg",
     },
-    {
-      name: "초코",
-      breed: "푸들",
-      age: 1,
-      type: "소형견",
-      location: "인천 남동구",
-      status: "임보 중",
-      time: "1시간 전",
-      image: "/dog-placeholder.jpg",
-    },
   ];
-
   return (
     <div className="max-w-6xl mx-auto px-4 pt-0 md:pt-6">
       <ToolBar />
