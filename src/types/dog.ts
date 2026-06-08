@@ -2,12 +2,12 @@ export interface Dog {
   id: number;
   title: string;
   name: string;
-  breed: string;
   age: number;
+  breed: string;
   location: string;
   hashtags: string[];
-  currentParticipants: number;
-  maxParticipants: number;
+  current_participants: number;
+  max_participants: number;
   note: string;
   time: string;
   image: string;

@@ -31,15 +31,15 @@ export default function DogCard({ dog }: DogCardProps) {
               <MapPin size={14} /> {dog.location}
             </span>
             <span className="flex items-center gap-1">
-              <Users size={14} /> {dog.currentParticipants}/
-              {dog.maxParticipants}
+              <Users size={14} /> {dog.current_participants}/
+              {dog.max_participants}
             </span>
           </div>
         </div>
 
         {/* 해시태그 */}
         <div className="flex flex-wrap gap-1">
-          {dog.hashtags.map((tag) => (
+          {dog.hashtags?.map((tag) => (
             <span key={tag} className="text-xs text-blue-500">
               #{tag}
             </span>
