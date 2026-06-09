@@ -1,15 +1,29 @@
-// src/componenets/mobile/MobileTabBar
-
 "use client";
 
 import { Home, MapPin, MessageSquare, Dog } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function MobileTabBar() {
+  const router = useRouter();
+
+  const handleMyClick = async () => {
+    const { data } = await supabase.auth.getSession();
+    if (data.session) {
+      router.push("/mypage"); // 로그인 되어있으면 마이페이지로
+    } else {
+      router.push("/login"); // 안되어 있으면 로그인 페이지로
+    }
+  };
+
   return (
     <div className="block md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 h-16 z-50 shadow-[0_-1px_3px_rgba(0,0,0,0.02)]">
       <nav className="flex justify-around items-center h-full text-[11px] text-gray-500 font-medium">
         {/* 동네피드 (Home) */}
-        <button className="flex flex-col items-center gap-1 flex-1 py-2 text-gray-600 hover:text-amber-600 transition-colors">
+        <button
+          onClick={() => router.push("/")}
+          className="flex flex-col items-center gap-1 flex-1 py-2 text-gray-600 hover:text-amber-600 transition-colors"
+        >
           <Home size={20} strokeWidth={2} />
           <span className="tracking-tight">동네피드</span>
         </button>
@@ -26,8 +40,11 @@ export default function MobileTabBar() {
           <span className="tracking-tight">커뮤니티</span>
         </button>
 
-        {/*  MY (Dog) */}
-        <button className="flex flex-col items-center gap-1 flex-1 py-2 text-gray-600 hover:text-amber-600 transition-colors">
+        {/* MY (Dog) */}
+        <button
+          onClick={handleMyClick}
+          className="flex flex-col items-center gap-1 flex-1 py-2 text-gray-600 hover:text-amber-600 transition-colors"
+        >
           <Dog size={20} strokeWidth={2} />
           <span className="tracking-tight">MY</span>
         </button>

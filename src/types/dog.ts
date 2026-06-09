@@ -9,6 +9,6 @@ export interface Dog {
   current_participants: number;
   max_participants: number;
   note: string;
-  time: string;
+  created_at: string;
   image: string;
 }

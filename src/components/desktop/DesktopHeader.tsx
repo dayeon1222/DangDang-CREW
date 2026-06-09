@@ -1,18 +1,38 @@
-// src/components/desktop/DesktopHeader
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Dog } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function DesktopHeader() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const router = useRouter();
+
+  // 페이지 로드 시 로그인 상태 체크
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data } = await supabase.auth.getSession();
+      setIsLoggedIn(!!data.session);
+    };
+    checkUser();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setIsLoggedIn(false);
+    router.refresh(); // 페이지 새로고침하여 상태 동기화
+  };
 
   return (
     <header className="hidden md:flex w-full h-[100px] bg-white border-b border-gray-100 px-6 fixed top-0 left-0 z-50 items-center">
       <div className="w-full max-w-6xl mx-auto flex justify-between items-center">
         {/* 로고와 기본 메뉴 */}
         <div className="flex items-center gap-12">
-          <h1 className="h-[140px] flex items-center cursor-pointer flex-shrink-0">
+          <h1
+            className="h-[140px] flex items-center cursor-pointer flex-shrink-0"
+            onClick={() => router.push("/")}
+          >
             <img
               src="/logo.png"
               alt="댕댕크루 로고"
@@ -20,7 +40,6 @@ export default function DesktopHeader() {
             />
           </h1>
 
-          {/* nav */}
           <nav className="flex gap-8 text-gray-700 font-bold flex-shrink-0">
             <a
               href="#"
@@ -45,24 +64,22 @@ export default function DesktopHeader() {
 
         {/* 우측 로그인 상태 영역 */}
         <div className="flex items-center gap-6 flex-shrink-0">
-          {/* 로그인/로그아웃 텍스트 스위칭 */}
           {isLoggedIn ? (
             <button
-              onClick={() => setIsLoggedIn(false)}
+              onClick={handleLogout}
               className="text-sm text-gray-500 hover:text-gray-800 transition-colors whitespace-nowrap font-medium"
             >
               로그아웃
             </button>
           ) : (
             <button
-              onClick={() => setIsLoggedIn(true)}
+              onClick={() => router.push("/login")}
               className="text-sm text-gray-700 font-bold hover:text-amber-600 transition-colors whitespace-nowrap"
             >
               로그인
             </button>
           )}
 
-          {/* 프로필 사진 / 게스트 아이콘 스위칭 */}
           {isLoggedIn ? (
             <img
               src="https://via.placeholder.com/150"

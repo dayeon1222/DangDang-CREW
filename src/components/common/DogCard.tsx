@@ -1,5 +1,7 @@
 import { MapPin, Users, Info, Clock } from "lucide-react";
 import { Dog } from "@/types/dog";
+import { formatDistanceToNow } from "date-fns";
+import { ko } from "date-fns/locale";
 
 export interface DogCardProps {
   dog: Dog;
@@ -52,7 +54,11 @@ export default function DogCard({ dog }: DogCardProps) {
             <Info size={12} /> {dog.note}
           </div>
           <span className="flex items-center gap-1 text-xs text-gray-400 shrink-0 ml-2">
-            <Clock size={12} /> {dog.time}
+            <Clock size={12} />
+            {formatDistanceToNow(new Date(dog.created_at), {
+              addSuffix: true,
+              locale: ko,
+            })}
           </span>
         </div>
       </div>
