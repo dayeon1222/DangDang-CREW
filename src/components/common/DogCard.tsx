@@ -13,8 +13,8 @@ export default function DogCard({ dog }: DogCardProps) {
       {/* 강아지 사진 */}
       <div className="w-24 h-24 rounded-xl overflow-hidden bg-gray-200 shrink-0">
         <img
-          src={dog.image}
-          alt={dog.name}
+          src={dog.image_url}
+          alt={dog.title}
           className="w-full h-full object-cover"
         />
       </div>
@@ -23,18 +23,11 @@ export default function DogCard({ dog }: DogCardProps) {
       <div className="flex flex-col justify-between py-1 w-full gap-1">
         <div className="flex flex-col gap-0.5">
           <h3 className="font-bold text-gray-900 truncate">{dog.title}</h3>
-          <p className="text-sm text-gray-600 font-medium">
-            {dog.name} ({dog.age}살, {dog.breed})
-          </p>
 
           {/* 장소 & 참여 인원 */}
-          <div className="flex items-center gap-3 text-xs text-gray-500">
+          <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
             <span className="flex items-center gap-1">
-              <MapPin size={14} /> {dog.location}
-            </span>
-            <span className="flex items-center gap-1">
-              <Users size={14} /> {dog.current_participants}/
-              {dog.max_participants}
+              <Users size={14} /> 최대 {dog.people}명 모집
             </span>
           </div>
         </div>
@@ -48,10 +41,10 @@ export default function DogCard({ dog }: DogCardProps) {
           ))}
         </div>
 
-        {/* 특이사항 & 시간 */}
+        {/* 설명 & 시간 */}
         <div className="flex items-center justify-between mt-1">
-          <div className="flex items-center gap-1 text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded">
-            <Info size={12} /> {dog.note}
+          <div className="text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded truncate max-w-[150px]">
+            {dog.content}
           </div>
           <span className="flex items-center gap-1 text-xs text-gray-400 shrink-0 ml-2">
             <Clock size={12} />

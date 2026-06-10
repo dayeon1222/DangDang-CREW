@@ -1,4 +1,5 @@
 import { Pencil } from "lucide-react";
+import Link from "next/link";
 
 export default function ToolBar() {
   return (
@@ -16,10 +17,13 @@ export default function ToolBar() {
       </div>
 
       {/* 글쓰기 버튼 */}
-      <button className="flex items-center justify-center gap-2 w-full md:w-auto px-5 py-2 bg-primary text-white rounded-full font-bold shadow-md hover:bg-primary-dark transition">
+      <Link
+        href="/write"
+        className="flex items-center justify-center gap-2 w-full md:w-auto px-5 py-2 bg-primary text-white rounded-full font-bold shadow-md hover:bg-primary-dark transition"
+      >
         <Pencil size={16} />
         글쓰기
-      </button>
+      </Link>
     </div>
   );
 }
