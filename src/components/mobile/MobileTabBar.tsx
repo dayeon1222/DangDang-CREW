@@ -2,10 +2,9 @@
 
 import { Home, MapPin, MessageSquare, Dog } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function MobileTabBar() {
-  const supabase = createClient();
   const router = useRouter();
 
   const handleMyClick = async () => {

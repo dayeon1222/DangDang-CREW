@@ -16,4 +16,6 @@ export interface WriteFormData {
   content: string;
   people: string; // 폼에서 선택된 값은 string으로 들어옴
   hashtag: string; // 콤마로 구분된 문자열
+  dog_size: string;
+  deadline: string;
 }

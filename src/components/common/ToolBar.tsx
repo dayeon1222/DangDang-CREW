@@ -1,7 +1,16 @@
 import { Pencil } from "lucide-react";
 import Link from "next/link";
 
-export default function ToolBar() {
+// 1. 부모로부터 받을 데이터(props) 정의
+interface ToolBarProps {
+  onFilterChange: (size: string) => void;
+  selectedSize: string;
+}
+
+export default function ToolBar({
+  onFilterChange,
+  selectedSize,
+}: ToolBarProps) {
   return (
     <div className="flex flex-col md:flex-row justify-between items-center mt-0 mb-6 gap-4 px-4">
       {/* 필터 영역 */}
@@ -9,7 +18,13 @@ export default function ToolBar() {
         {["전체", "대형견", "중형견", "소형견"].map((item) => (
           <button
             key={item}
-            className="whitespace-nowrap px-4 py-2 border border-gray-200 rounded-full text-sm hover:bg-primary hover:text-white transition shadow-sm"
+            onClick={() => onFilterChange(item)} // 2. 클릭 시 부모의 함수 호출
+            className={`whitespace-nowrap px-4 py-2 border rounded-full text-sm transition shadow-sm 
+              ${
+                selectedSize === item
+                  ? "bg-primary text-white border-primary" // 선택된 버튼 스타일
+                  : "bg-white border-gray-200 hover:bg-primary hover:text-white"
+              }`}
           >
             {item}
           </button>

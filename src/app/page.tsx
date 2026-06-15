@@ -1,42 +1,44 @@
+"use client"; // 1. 클라이언트 컴포넌트로 변경
+
+import { useState, useEffect } from "react";
 import ToolBar from "@/components/common/ToolBar";
+import Link from "next/link";
 import DogCard from "@/components/common/DogCard";
-import { createClient } from "@/lib/supabaseServer";
+import { supabase } from "@/lib/supabaseClient";
 
-export default async function HomePage() {
-  // 서버 전용 클라이언트 생성
-  const supabase = await createClient();
+export default function HomePage() {
+  const [dogs, setDogs] = useState<any[]>([]);
+  const [selectedSize, setSelectedSize] = useState<string>("전체"); // 필터 상태 추가
 
-  // 데이터 가져오기
-  const { data: dogs, error } = await supabase
-    .from("dogs")
-    .select("*")
-    .order("created_at", { ascending: false });
+  useEffect(() => {
+    fetchDogs();
+  }, [selectedSize]); // 선택이 바뀔 때마다 다시 실행
 
-  // 에러 처리
-  if (error) {
-    console.error("데이터 로딩 에러:", error);
-    return (
-      <div className="p-10 text-center text-red-500">
-        데이터를 불러오는 중 문제가 발생했습니다.
-      </div>
-    );
-  }
+  const fetchDogs = async () => {
+    let query = supabase
+      .from("dogs")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    // 필터 조건 적용
+    if (selectedSize !== "전체") {
+      query = query.eq("dog_size", selectedSize);
+    }
+
+    const { data } = await query;
+    setDogs(data || []);
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 pt-0 md:pt-6">
-      <ToolBar />
+      <ToolBar onFilterChange={setSelectedSize} selectedSize={selectedSize} />
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {dogs && dogs.length > 0 ? (
-          dogs.map((item) => (
-            <div key={item.id} className="w-full">
-              <DogCard dog={item} />
-            </div>
-          ))
-        ) : (
-          <div className="col-span-full p-20 text-center text-gray-400">
-            등록된 산책 친구가 없어요. 첫 번째 주인공이 되어주세요!
-          </div>
-        )}
+        {dogs.map((item) => (
+          <Link key={item.id} href={`/dogs/${item.id}`} className="w-full">
+            <DogCard dog={item} />
+          </Link>
+        ))}
       </div>
     </div>
   );
