@@ -1,4 +1,4 @@
-"use client"; // 1. 클라이언트 컴포넌트로 변경
+"use client";
 
 import { useState, useEffect } from "react";
 import ToolBar from "@/components/common/ToolBar";
