@@ -7,21 +7,64 @@ import { supabase } from "@/lib/supabaseClient";
 
 export default function DesktopHeader() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const router = useRouter();
 
-  // 페이지 로드 시 로그인 상태 체크
+  // 프로필 정보를 가져와 상태를 업데이트하는 함수
+  const fetchProfile = async (userId: string) => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("avatar_url")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (data?.avatar_url) {
+      setAvatarUrl(data.avatar_url);
+    } else {
+      setAvatarUrl(null);
+    }
+  };
+
+  //  페이지 로드 시 로그인 상태 체크 및 실시간 구독
   useEffect(() => {
     const checkUser = async () => {
       const { data } = await supabase.auth.getSession();
-      setIsLoggedIn(!!data.session);
+      if (data.session?.user) {
+        setIsLoggedIn(true);
+        fetchProfile(data.session.user.id);
+      }
     };
     checkUser();
+
+    // 로그인/로그아웃 시 즉시 상태 동기화
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
+        setAvatarUrl(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setIsLoggedIn(false);
-    router.refresh(); // 페이지 새로고침하여 상태 동기화
+    setAvatarUrl(null);
+    router.refresh();
+  };
+
+  //  프로필 클릭 시 상세 페이지(/profile)로 이동
+  const handleProfileClick = () => {
+    if (isLoggedIn) {
+      router.push("/profile");
+    } else {
+      router.push("/login");
+    }
   };
 
   return (
@@ -80,17 +123,20 @@ export default function DesktopHeader() {
             </button>
           )}
 
-          {isLoggedIn ? (
-            <img
-              src="https://via.placeholder.com/150"
-              alt="유저 프로필"
-              className="w-12 h-12 rounded-full ring-2 ring-gray-100 object-cover cursor-pointer hover:opacity-90 transition-opacity"
-            />
-          ) : (
-            <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-700 border border-amber-100 flex items-center justify-center cursor-pointer hover:bg-amber-100 transition-colors shadow-sm">
-              <Dog size={24} strokeWidth={2.5} />
-            </div>
-          )}
+          {/* 클릭 시 handleProfileClick 실행 */}
+          <div onClick={handleProfileClick} className="cursor-pointer">
+            {isLoggedIn && avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt="유저 프로필"
+                className="w-12 h-12 rounded-full ring-2 ring-gray-100 object-cover hover:opacity-90 transition-opacity"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-700 border border-amber-100 flex items-center justify-center hover:bg-amber-100 transition-colors shadow-sm">
+                <Dog size={24} strokeWidth={2.5} />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

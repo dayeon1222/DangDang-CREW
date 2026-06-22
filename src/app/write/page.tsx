@@ -19,10 +19,13 @@ export default function WritePage({
   params?: Promise<{ id: string }>;
 }) {
   const router = useRouter();
-  const [id, setId] = useState<string | null>(null);
 
+  // params를 use 훅으로 언래핑합니다.
   const resolvedParams = params ? use(params) : null;
   const isEdit = !!resolvedParams?.id;
+
+  // id 상태를 초기화합니다.
+  const [id, setId] = useState<string | null>(resolvedParams?.id || null);
 
   const [formData, setFormData] = useState<WriteFormData>({
     title: "",
@@ -30,7 +33,8 @@ export default function WritePage({
     hashtag: "",
     content: "",
     dog_size: "",
-    deadline: "", // 추가
+    deadline: "",
+    status: "모집중", // 초기값 설정 (필요에 따라 수정)
   });
 
   const [image, setImage] = useState<File | null>(null);
@@ -40,28 +44,31 @@ export default function WritePage({
 
   useEffect(() => {
     if (isEdit && resolvedParams?.id) {
-      setId(resolvedParams.id);
       const fetchDog = async () => {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("dogs")
           .select("*")
           .eq("id", resolvedParams.id)
-          .single();
+          .maybeSingle(); // 에러 방지를 위해 maybeSingle 사용
+
         if (data) {
           setFormData({
-            title: data.title,
-            content: data.content,
-            people: data.people.toString(),
+            title: data.title || "",
+            content: data.content || "",
+            people: data.people?.toString() || "",
             hashtag: data.hashtags ? data.hashtags.join(", ") : "",
-            dog_size: data.dog_size,
-            deadline: data.deadline || "", // 데이터 불러오기
+            dog_size: data.dog_size || "",
+            deadline: data.deadline || "",
+            status: data.status || "모집중",
           });
-          setPreviewUrl(data.image_url);
+          setPreviewUrl(data.image_url || null);
+        } else if (error) {
+          console.error("데이터 로드 실패:", error);
         }
       };
       fetchDog();
     }
-  }, [isEdit, resolvedParams?.id, supabase]);
+  }, [isEdit, resolvedParams?.id]);
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
@@ -109,6 +116,7 @@ export default function WritePage({
           .from("dog-images")
           .upload(fileName, image);
         if (uploadError) throw uploadError;
+
         const { data } = supabase.storage
           .from("dog-images")
           .getPublicUrl(fileName);
@@ -125,19 +133,24 @@ export default function WritePage({
           .map((t) => t.trim())
           .filter((t) => t !== ""),
         dog_size: formData.dog_size,
-        deadline: formData.deadline, // 저장
+        deadline: formData.deadline,
       };
 
       if (isEdit && id) {
-        await supabase.from("dogs").update(postData).eq("id", id);
+        const { error } = await supabase
+          .from("dogs")
+          .update(postData)
+          .eq("id", id);
+        if (error) throw error;
         alert("수정되었습니다!");
       } else {
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        await supabase
+        const { error } = await supabase
           .from("dogs")
           .insert([{ ...postData, user_id: user?.id }]);
+        if (error) throw error;
         alert("등록되었습니다!");
       }
 
@@ -170,7 +183,10 @@ export default function WritePage({
           <div className="relative border-2 border-dashed border-gray-300 rounded-2xl h-64 flex items-center justify-center bg-gray-50">
             {previewUrl ? (
               <>
-                <img src={previewUrl} className="w-full h-full object-cover" />
+                <img
+                  src={previewUrl}
+                  className="w-full h-full object-cover rounded-2xl"
+                />
                 <button
                   type="button"
                   onClick={handleRemoveImage}
@@ -209,8 +225,7 @@ export default function WritePage({
             <option value="">참여 인원</option>
             {[2, 3, 4, 5, 6].map((n) => (
               <option key={n} value={n}>
-                {n}
-                {n === 6 ? "명 이상" : "명"}
+                {n} {n === 6 ? "명 이상" : "명"}
               </option>
             ))}
           </select>

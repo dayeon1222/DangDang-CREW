@@ -16,12 +16,12 @@ export interface Dog {
 // 폼 입력 시 사용할 데이터
 export interface WriteFormData {
   title: string;
-  content: string;
-  people: number;
+  people: string;
   hashtag: string;
+  content: string;
   dog_size: string;
   deadline: string;
-  status: "모집중" | "마감" | "완료";
+  status: string;
 }
 
 export interface Participant {
@@ -33,3 +33,17 @@ export type ReviewData = {
   rating: number;
   content: string;
 };
+
+export interface Profile {
+  id: string;
+  nickname: string | null;
+  bio: string | null;
+  avatar_url?: string | null;
+}
+
+export interface Review {
+  id: string;
+  rating: number;
+  content: string;
+  profiles: { nickname: string | null }[] | { nickname: string | null } | null;
+}
