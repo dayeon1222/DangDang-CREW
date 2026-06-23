@@ -46,10 +46,8 @@ export default function DogDetailPage({
 
   useEffect(() => {
     const fetchData = async () => {
-      // 숫자형 ID 변환
       const numericId = parseInt(id);
 
-      //  게시글 정보 조회 (numericId 사용)
       const { data: dogData } = await supabase
         .from("dogs")
         .select("*")
@@ -62,14 +60,12 @@ export default function DogDetailPage({
       } = await supabase.auth.getUser();
       setUser(user);
 
-      // 참여자 수 계산 (numericId 사용)
       const { count } = await supabase
         .from("participants")
         .select("post_id", { count: "exact", head: true })
         .eq("post_id", numericId);
       setParticipantsCount(count || 0);
 
-      // 본인 참여 여부 확인 (numericId 사용)
       if (user) {
         const { data: pData } = await supabase
           .from("participants")
@@ -148,22 +144,22 @@ export default function DogDetailPage({
       </p>
 
       {/* 액션 버튼 영역 */}
-      {isOwner ? (
-        dog.status !== "완료" ? (
-          <button
-            onClick={() => handleStatusChange("완료")}
-            className="w-full p-4 bg-emerald-600 text-white rounded-xl font-bold"
-          >
-            산책 완료하기
-          </button>
-        ) : (
+      {dog.status === "완료" ? (
+        (isOwner || isParticipating) && (
           <Link
             href={`/dogs/${id}/review`}
             className="block w-full p-4 bg-primary text-white rounded-xl text-center font-bold"
           >
-            참여자 후기 남기러 가기
+            산책 후기 남기러 가기
           </Link>
         )
+      ) : isOwner ? (
+        <button
+          onClick={() => handleStatusChange("완료")}
+          className="w-full p-4 bg-emerald-600 text-white rounded-xl font-bold"
+        >
+          산책 완료하기
+        </button>
       ) : (
         dog.status.replace(/'/g, "").trim() === "모집중" &&
         user && (
@@ -171,7 +167,6 @@ export default function DogDetailPage({
             onClick={async () => {
               const numericId = parseInt(id);
               if (isParticipating) {
-                // [참여 취소 로직]
                 const { error } = await supabase
                   .from("participants")
                   .delete()
@@ -187,7 +182,6 @@ export default function DogDetailPage({
                   alert("참여가 취소되었습니다.");
                 }
               } else {
-                // [참여 로직]
                 const { error } = await supabase
                   .from("participants")
                   .insert([{ post_id: numericId, user_id: user.id }]);

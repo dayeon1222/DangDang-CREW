@@ -45,5 +45,5 @@ export interface Review {
   id: string;
   rating: number;
   content: string;
-  profiles: { nickname: string | null }[] | { nickname: string | null } | null;
+  profiles: { nickname: string | null } | { nickname: string | null }[] | null;
 }
