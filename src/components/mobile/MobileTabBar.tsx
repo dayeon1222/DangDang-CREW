@@ -1,20 +1,21 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Home, MapPin, MessageSquare, Dog } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { Home, MapPin, MessageSquare, Dog } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function MobileTabBar() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (uid: string) => {
     const { data } = await supabase
       .from("profiles")
       .select("avatar_url")
-      .eq("id", userId)
+      .eq("id", uid)
       .maybeSingle();
     setAvatarUrl(data?.avatar_url || null);
   };
@@ -24,6 +25,7 @@ export default function MobileTabBar() {
       const { data } = await supabase.auth.getSession();
       if (data.session?.user) {
         setIsLoggedIn(true);
+        setUserId(data.session.user.id);
         fetchProfile(data.session.user.id);
       }
     };
@@ -33,16 +35,24 @@ export default function MobileTabBar() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsLoggedIn(!!session);
-      if (session?.user) fetchProfile(session.user.id);
-      else setAvatarUrl(null);
+      if (session?.user) {
+        setUserId(session.user.id);
+        fetchProfile(session.user.id);
+      } else {
+        setUserId(null);
+        setAvatarUrl(null);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   const handleMyClick = () => {
-    if (isLoggedIn) router.push("/profile");
-    else router.push("/login");
+    if (isLoggedIn && userId) {
+      router.push(`/profile/${userId}`);
+    } else {
+      router.push("/login");
+    }
   };
 
   return (
@@ -55,7 +65,10 @@ export default function MobileTabBar() {
           <Home size={20} strokeWidth={2} />
           <span className="tracking-tight">동네피드</span>
         </button>
-        <button className="flex flex-col items-center gap-1 flex-1 py-2 text-gray-600 hover:text-amber-600 transition-colors">
+        <button
+          onClick={() => router.push("/map")}
+          className="flex flex-col items-center gap-1 flex-1 py-2 text-gray-600 hover:text-amber-600 transition-colors"
+        >
           <MapPin size={20} strokeWidth={2} />
           <span className="tracking-tight">지도보기</span>
         </button>
