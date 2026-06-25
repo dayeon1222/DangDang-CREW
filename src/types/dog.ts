@@ -47,3 +47,15 @@ export interface Review {
   content: string;
   profiles: { nickname: string | null } | { nickname: string | null }[] | null;
 }
+
+export interface Location {
+  lat: number;
+  lng: number;
+}
+
+export interface ParkPlace {
+  id: string;
+  place_name: string;
+  x: string; // 경도(longitude)
+  y: string; // 위도(latitude)
+}
