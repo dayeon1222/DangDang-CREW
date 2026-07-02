@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 
 import DesktopHeader from "@/components/desktop/DesktopHeader";
@@ -14,14 +15,15 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const kakaoAppKey = process.env.NEXT_PUBLIC_KAKAO_APP_KEY;
+
   return (
     <html lang="ko">
-      <head></head>
       <body
         className="min-h-full flex flex-col bg-gray-50 text-gray-900"
         suppressHydrationWarning={true}
       >
-        {/*  데스크톱용 상단 바 고정 */}
+        {/* 데스크톱용 상단 바 고정 */}
         <DesktopHeader />
 
         <main className="flex-1 pt-[100px] pb-16 md:pb-0">{children}</main>

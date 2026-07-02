@@ -39,6 +39,7 @@ export interface Profile {
   nickname: string | null;
   bio: string | null;
   avatar_url?: string | null;
+  favorite_park_id: string | null;
 }
 
 export interface Review {
@@ -58,4 +59,10 @@ export interface ParkPlace {
   place_name: string;
   x: string; // 경도(longitude)
   y: string; // 위도(latitude)
+}
+
+export interface KakaoPlaceResult {
+  id: string;
+  place_name: string;
+  address_name: string;
 }
