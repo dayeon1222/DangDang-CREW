@@ -6,6 +6,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
 import { Dog } from "@/types/dog";
+import { MapPin } from "lucide-react";
 
 export default function DogDetailPage({
   params,
@@ -90,6 +91,8 @@ export default function DogDetailPage({
   };
 
   const isOwner = user?.id === dog?.user_id;
+  // 상태값 정규화 (공백 제거 후 비교)
+  const normalizedStatus = dog?.status?.trim() || "";
 
   if (!dog) return <div className="p-10 text-center">로딩중...</div>;
 
@@ -99,6 +102,12 @@ export default function DogDetailPage({
       <div className="text-sm text-gray-400 mb-4">
         {formatDate(dog.created_at)}
       </div>
+
+      <div className="flex items-center gap-1 mb-4 text-primary font-bold">
+        <MapPin size={18} />
+        <span>{dog.location_name || "위치 정보 없음"}</span>
+      </div>
+
       <div className="mb-4 inline-block px-3 py-1 bg-blue-100 rounded-full text-sm font-bold text-blue-600">
         상태: {dog.status}
       </div>
@@ -139,12 +148,19 @@ export default function DogDetailPage({
         </span>
       </div>
 
+      <div className="mb-6 p-4 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-between">
+        <span className="text-emerald-800 font-bold">댕댕이 크기</span>
+        <span className="px-3 py-1 bg-white text-emerald-600 rounded-lg font-bold border border-emerald-200">
+          {dog.dog_size || "정보 없음"}
+        </span>
+      </div>
+
       <p className="text-gray-700 bg-gray-50 p-4 rounded-xl mb-6 whitespace-pre-line">
         {dog.content}
       </p>
 
       {/* 액션 버튼 영역 */}
-      {dog.status === "완료" ? (
+      {normalizedStatus === "완료" ? (
         (isOwner || isParticipating) && (
           <Link
             href={`/dogs/${id}/review`}
@@ -161,7 +177,7 @@ export default function DogDetailPage({
           산책 완료하기
         </button>
       ) : (
-        dog.status.replace(/'/g, "").trim() === "모집중" &&
+        normalizedStatus === "모집중" &&
         user && (
           <button
             onClick={async () => {
@@ -174,7 +190,6 @@ export default function DogDetailPage({
                   .eq("user_id", user.id);
 
                 if (error) {
-                  console.error("취소 실패:", error);
                   alert("취소에 실패했습니다.");
                 } else {
                   setParticipantsCount((prev) => prev - 1);
@@ -187,7 +202,6 @@ export default function DogDetailPage({
                   .insert([{ post_id: numericId, user_id: user.id }]);
 
                 if (error) {
-                  console.error("참여 실패:", error);
                   alert("참여에 실패했습니다.");
                 } else {
                   setParticipantsCount((prev) => prev + 1);

@@ -11,9 +11,10 @@ export interface Dog {
   deadline: string;
   status: "모집중" | "마감" | "완료";
   dog_size: string;
+  location_name: string;
+  location_id: string;
 }
 
-// 폼 입력 시 사용할 데이터
 export interface WriteFormData {
   title: string;
   people: string;
@@ -36,10 +37,9 @@ export type ReviewData = {
 
 export interface Profile {
   id: string;
-  nickname: string | null;
-  bio: string | null;
-  avatar_url?: string | null;
-  favorite_park_id: string | null;
+  nickname: string;
+  avatar_url: string;
+  bio?: string | null;
 }
 
 export interface Review {
@@ -57,12 +57,23 @@ export interface Location {
 export interface ParkPlace {
   id: string;
   place_name: string;
-  x: string; // 경도(longitude)
-  y: string; // 위도(latitude)
+  x: string;
+  y: string;
 }
 
 export interface KakaoPlaceResult {
   id: string;
   place_name: string;
   address_name: string;
+}
+
+export interface DogData {
+  user_id: string;
+  status: string;
+}
+
+export interface WalkingUser {
+  user_id: string;
+  nickname: string;
+  avatar_url: string;
 }

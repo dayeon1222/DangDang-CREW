@@ -9,7 +9,8 @@ import {
   use,
 } from "react";
 import { useRouter } from "next/navigation";
-import { ImagePlus, X } from "lucide-react";
+import { ImagePlus, X, MapPin } from "lucide-react";
+import { useKakaoLoader } from "react-kakao-maps-sdk";
 import { WriteFormData } from "@/types/dog";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -20,12 +21,20 @@ export default function WritePage({
 }) {
   const router = useRouter();
 
-  // params를 use 훅으로 언래핑합니다.
+  // 카카오 SDK 로더 추가
+  const [loadingKakao] = useKakaoLoader({
+    appkey: process.env.NEXT_PUBLIC_KAKAO_APP_KEY || "",
+    libraries: ["services"],
+  });
+
   const resolvedParams = params ? use(params) : null;
   const isEdit = !!resolvedParams?.id;
 
-  // id 상태를 초기화합니다.
   const [id, setId] = useState<string | null>(resolvedParams?.id || null);
+
+  // 공원 목록 상태
+  const [parkList, setParkList] = useState<{ id: string; name: string }[]>([]);
+  const [loadingParks, setLoadingParks] = useState(true);
 
   const [formData, setFormData] = useState<WriteFormData>({
     title: "",
@@ -34,14 +43,55 @@ export default function WritePage({
     content: "",
     dog_size: "",
     deadline: "",
-    status: "모집중", // 초기값 설정 (필요에 따라 수정)
+    status: "모집중",
   });
 
+  const [location, setLocation] = useState<{ name: string; id: string } | null>(
+    null,
+  );
   const [image, setImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 1. 현재 위치 기반 주변 공원 검색 로직
+  useEffect(() => {
+    if (loadingKakao) return; // SDK가 로딩 중이면 대기
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+
+          const ps = new kakao.maps.services.Places();
+          ps.keywordSearch(
+            "공원",
+            (data, status) => {
+              if (status === kakao.maps.services.Status.OK) {
+                setParkList(
+                  data.map((p) => ({ id: p.id, name: p.place_name })),
+                );
+              }
+              setLoadingParks(false);
+            },
+            {
+              location: new kakao.maps.LatLng(latitude, longitude),
+              radius: 5000,
+              sort: kakao.maps.services.SortBy.DISTANCE,
+            },
+          );
+        },
+        () => {
+          alert("위치 정보를 가져올 수 없습니다.");
+          setLoadingParks(false);
+        },
+      );
+    } else {
+      setLoadingParks(false);
+    }
+  }, [loadingKakao]);
+
+  // 2. 수정 모드일 때 데이터 로드
   useEffect(() => {
     if (isEdit && resolvedParams?.id) {
       const fetchDog = async () => {
@@ -49,7 +99,7 @@ export default function WritePage({
           .from("dogs")
           .select("*")
           .eq("id", resolvedParams.id)
-          .maybeSingle(); // 에러 방지를 위해 maybeSingle 사용
+          .maybeSingle();
 
         if (data) {
           setFormData({
@@ -62,8 +112,9 @@ export default function WritePage({
             status: data.status || "모집중",
           });
           setPreviewUrl(data.image_url || null);
-        } else if (error) {
-          console.error("데이터 로드 실패:", error);
+          if (data.location_name && data.location_id) {
+            setLocation({ name: data.location_name, id: data.location_id });
+          }
         }
       };
       fetchDog();
@@ -100,9 +151,10 @@ export default function WritePage({
       !formData.content ||
       !formData.people ||
       !formData.dog_size ||
-      !formData.deadline
+      !formData.deadline ||
+      !location
     ) {
-      return alert("모든 필수 항목(마감 시간 포함)을 입력해주세요!");
+      return alert("모든 필수 항목을 입력해주세요!");
     }
 
     setIsSubmitting(true);
@@ -134,6 +186,8 @@ export default function WritePage({
           .filter((t) => t !== ""),
         dog_size: formData.dog_size,
         deadline: formData.deadline,
+        location_name: location.name,
+        location_id: location.id,
       };
 
       if (isEdit && id) {
@@ -177,6 +231,30 @@ export default function WritePage({
           onChange={handleChange}
           className="p-3 border rounded-xl"
         />
+
+        {/* 공원 선택 셀렉트 박스 */}
+        <div className="flex items-center gap-2 border p-3 rounded-xl bg-white">
+          <MapPin size={20} className="text-gray-400" />
+          <select
+            value={location?.id || ""}
+            onChange={(e) => {
+              const selected = parkList.find((p) => p.id === e.target.value);
+              if (selected) setLocation(selected);
+            }}
+            className="w-full outline-none bg-transparent"
+          >
+            <option value="">
+              {loadingParks
+                ? "주변 공원 찾는 중..."
+                : "산책할 공원을 선택하세요"}
+            </option>
+            {parkList.map((park) => (
+              <option key={park.id} value={park.id}>
+                {park.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
         <div className="flex flex-col gap-2">
           <label className="text-sm font-bold text-gray-600">강아지 사진</label>
@@ -229,15 +307,13 @@ export default function WritePage({
               </option>
             ))}
           </select>
-          <div className="flex-1 flex flex-col gap-1">
-            <input
-              type="time"
-              name="deadline"
-              value={formData.deadline}
-              onChange={handleChange}
-              className="p-3 border rounded-xl outline-none w-full"
-            />
-          </div>
+          <input
+            type="time"
+            name="deadline"
+            value={formData.deadline}
+            onChange={handleChange}
+            className="flex-1 p-3 border rounded-xl outline-none"
+          />
         </div>
 
         <select
