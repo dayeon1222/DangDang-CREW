@@ -27,7 +27,7 @@ export default function DesktopHeader() {
       const { data } = await supabase.auth.getSession();
       if (data.session?.user) {
         setIsLoggedIn(true);
-        setUserId(data.session.user.id); // ID 저장
+        setUserId(data.session.user.id);
         fetchProfile(data.session.user.id);
       }
     };
@@ -38,10 +38,10 @@ export default function DesktopHeader() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsLoggedIn(!!session);
       if (session?.user) {
-        setUserId(session.user.id); // ID 저장
+        setUserId(session.user.id);
         fetchProfile(session.user.id);
       } else {
-        setUserId(null); // 초기화
+        setUserId(null);
         setAvatarUrl(null);
       }
     });
@@ -82,18 +82,24 @@ export default function DesktopHeader() {
           </h1>
 
           <nav className="flex gap-8 text-gray-700 font-bold flex-shrink-0">
-            <a href="#" className="hover:text-amber-600 transition-colors">
+            <Link href="/" className="hover:text-amber-600 transition-colors">
               동네피드
-            </a>
+            </Link>
+
+            {/* 지도보기 */}
             <Link
               href="/map"
               className="hover:text-amber-600 transition-colors"
             >
               지도보기
             </Link>
-            <a href="#" className="hover:text-amber-600 transition-colors">
+
+            <Link
+              href="/community"
+              className="hover:text-amber-600 transition-colors"
+            >
               커뮤니티
-            </a>
+            </Link>
           </nav>
         </div>
 

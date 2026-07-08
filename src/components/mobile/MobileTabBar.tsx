@@ -65,6 +65,7 @@ export default function MobileTabBar() {
           <Home size={20} strokeWidth={2} />
           <span className="tracking-tight">동네피드</span>
         </button>
+
         <button
           onClick={() => router.push("/map")}
           className="flex flex-col items-center gap-1 flex-1 py-2 text-gray-600 hover:text-amber-600 transition-colors"
@@ -72,7 +73,11 @@ export default function MobileTabBar() {
           <MapPin size={20} strokeWidth={2} />
           <span className="tracking-tight">지도보기</span>
         </button>
-        <button className="flex flex-col items-center gap-1 flex-1 py-2 text-gray-600 hover:text-amber-600 transition-colors">
+
+        <button
+          onClick={() => router.push("/community")}
+          className="flex flex-col items-center gap-1 flex-1 py-2 text-gray-600 hover:text-amber-600 transition-colors"
+        >
           <MessageSquare size={20} strokeWidth={2} />
           <span className="tracking-tight">커뮤니티</span>
         </button>

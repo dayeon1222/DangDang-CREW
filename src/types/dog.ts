@@ -77,3 +77,30 @@ export interface WalkingUser {
   nickname: string;
   avatar_url: string;
 }
+
+export interface Post {
+  id: string;
+  user_id: string;
+  title: string;
+  content: string;
+  category: "자랑하기" | "고민상담";
+  image_url: string | null;
+  created_at: string;
+  profiles?: Profile; // 작성자 정보 연결용
+}
+
+export type Comment = {
+  id: string;
+  content: string;
+  created_at: string;
+  user_id: string;
+  parent_id: string | null;
+  profiles: { nickname: string };
+  comment_likes: { user_id: string }[];
+};
+
+export type PostWithStats = Post & {
+  profiles: { nickname: string };
+  post_likes: { count: number }[];
+  comments: { count: number }[];
+};
