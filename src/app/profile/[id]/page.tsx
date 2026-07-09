@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { PawPrint, ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import { Profile, Review } from "@/types/dog";
+import { Post } from "@/types/dog";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -13,7 +14,7 @@ export default function ProfilePage() {
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [avgRating, setAvgRating] = useState(0);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -53,16 +54,16 @@ export default function ProfilePage() {
         .eq("target_user_id", userId)
         .range(page * 5, (page + 1) * 5 - 1);
 
-      // 3. dog 테이블에서 글 조회 (status 컬럼 추가 조회)
+      // 3. dog 테이블에서 글 조회
       const { data: postsData } = await supabase
         .from("dogs")
-        .select("id, title, content, created_at, status")
+        .select("id, title, content, created_at")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
-      setProfile(profileData);
+      setProfile(profileData as Profile | null);
       setReviews((reviewsData as Review[]) || []);
-      setPosts(postsData || []);
+      setPosts((postsData as Post[]) || []);
       setLoading(false);
     };
 
@@ -128,12 +129,6 @@ export default function ProfilePage() {
                     </p>
                   </div>
                 </div>
-                {/* 모집 상태 표시 */}
-                <span
-                  className={`px-2 py-1 rounded text-xs font-bold ${post.status === "completed" ? "bg-gray-200 text-gray-600" : "bg-amber-100 text-amber-700"}`}
-                >
-                  {post.status === "completed" ? "완료" : "모집 중"}
-                </span>
               </div>
             </div>
           ))

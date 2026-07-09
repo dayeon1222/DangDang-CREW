@@ -1,4 +1,7 @@
 // types/dog.ts
+export interface DogCardProps {
+  dog: Dog;
+}
 export interface Dog {
   id: number;
   title: string;
@@ -25,6 +28,9 @@ export interface WriteFormData {
   status: string;
 }
 
+export interface CountData {
+  count: number;
+}
 export interface Participant {
   user_id: string;
   profiles: { nickname: string } | null;
@@ -86,7 +92,7 @@ export interface Post {
   category: "자랑하기" | "고민상담";
   image_url: string | null;
   created_at: string;
-  profiles?: Profile; // 작성자 정보 연결용
+  profiles?: Profile;
 }
 
 export type Comment = {

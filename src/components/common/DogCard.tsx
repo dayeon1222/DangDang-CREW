@@ -1,11 +1,7 @@
-import { MapPin, Users, Info, Clock } from "lucide-react";
-import { Dog } from "@/types/dog";
+import { MapPin, Users, Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
-
-export interface DogCardProps {
-  dog: Dog;
-}
+import { DogCardProps } from "@/types/dog";
 
 export default function DogCard({ dog }: DogCardProps) {
   return (
@@ -25,10 +21,14 @@ export default function DogCard({ dog }: DogCardProps) {
           <h3 className="font-bold text-gray-900 truncate">{dog.title}</h3>
 
           {/* 장소 & 참여 인원 */}
-          <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
-            <span className="flex items-center gap-1">
+          <div className="flex flex-col gap-1 mt-1">
+            <div className="flex items-center gap-1 text-xs text-gray-600 font-medium">
+              <MapPin size={14} className="text-primary" />
+              {dog.location_name || "장소 미지정"}
+            </div>
+            <div className="flex items-center gap-1 text-xs text-gray-500">
               <Users size={14} /> 최대 {dog.people}명 모집
-            </span>
+            </div>
           </div>
         </div>
 

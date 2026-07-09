@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { ParkPlace } from "@/types/dog";
 
 export async function POST(req: Request) {
   try {
-    const { parks, size } = await req.json();
+    // 요청 데이터 타입 명시
+    const body: { parks: ParkPlace[]; size: string } = await req.json();
+    const { parks, size } = body;
 
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
 
@@ -18,10 +21,12 @@ export async function POST(req: Request) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
+    // 공원 이름만 추출하여 프롬프트 구성
     const limitedParks = parks
       .slice(0, 10)
-      .map((p: any) => p.place_name)
+      .map((p: ParkPlace) => p.place_name)
       .join(", ");
+
     const prompt = `${size} 강아지와 산책하기 좋은 곳을 아래 공원들 중에서 추천해줘: ${limitedParks}`;
 
     const result = await model.generateContent(prompt);

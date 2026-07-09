@@ -3,6 +3,7 @@
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { User } from "@supabase/supabase-js";
 import { WalkingUser, DogData, Profile } from "@/types/dog";
 
 export default function ParkDetailPage() {
@@ -13,7 +14,7 @@ export default function ParkDetailPage() {
   const locationName = searchParams.get("name") || "알 수 없는 공원";
 
   const [users, setUsers] = useState<WalkingUser[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -55,7 +56,11 @@ export default function ParkDetailPage() {
         if (profileData) {
           // 데이터 병합
           const formattedUsers: WalkingUser[] = profileData.map(
-            (p: { id: string } & Profile) => ({
+            (p: {
+              id: string;
+              nickname: string | null;
+              avatar_url: string | null;
+            }) => ({
               user_id: p.id,
               nickname: p.nickname || "이름 없음",
               avatar_url: p.avatar_url || "/default-avatar.png",

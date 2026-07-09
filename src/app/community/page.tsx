@@ -2,10 +2,22 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { Post } from "@/types/dog";
 import Link from "next/link";
 import { Heart, MessageCircle } from "lucide-react";
-import { PostWithStats } from "@/types/dog";
+import { Profile, CountData } from "@/types/dog";
+
+export interface PostWithStats {
+  id: string;
+  title: string;
+  content: string;
+  category: "자랑하기" | "고민상담";
+  created_at: string;
+  image_url: string | null;
+  user_id: string;
+  profiles: Profile | null;
+  post_likes: CountData[];
+  comments: CountData[];
+}
 
 export default function CommunityPage() {
   const [posts, setPosts] = useState<PostWithStats[]>([]);
@@ -20,7 +32,13 @@ export default function CommunityPage() {
         .from("posts")
         .select(
           `
-          *, 
+          id,
+          title,
+          content,
+          category,
+          created_at,
+          image_url,
+          user_id,
           profiles:user_id (nickname),
           post_likes (count),
           comments (count)
@@ -28,8 +46,11 @@ export default function CommunityPage() {
         )
         .order("created_at", { ascending: false });
 
-      if (error) console.error("조회 에러:", error);
-      else setPosts((data as any) || []);
+      if (error) {
+        console.error("조회 에러:", error);
+      } else {
+        setPosts((data as unknown as PostWithStats[]) || []);
+      }
       setLoading(false);
     };
     fetchPosts();
