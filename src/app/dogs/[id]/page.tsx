@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
 import { Dog } from "@/types/dog";
 import { MapPin } from "lucide-react";
+import CalendarButton from "@/components/common/CalendarButton"; // 컴포넌트 임포트
 
 export default function DogDetailPage({
   params,
@@ -99,33 +100,41 @@ export default function DogDetailPage({
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 pb-24 bg-white min-h-screen">
       {/* Title & Meta */}
-      <h1 className="text-2xl md:text-3xl font-bold mb-3">{dog.title}</h1>
-      <div className="flex items-center justify-between mb-6">
-        <span className="text-sm text-gray-400">
-          {formatDate(dog.created_at)}
-        </span>
-        <div className="flex gap-2">
-          {isOwner && (
-            <>
-              <Link
-                href={`/edit/${id}`}
-                className="px-4 py-1.5 bg-gray-100 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-200"
-              >
-                수정
-              </Link>
-              <button
-                onClick={async () => {
-                  if (confirm("정말 삭제하시겠습니까?")) {
-                    await supabase.from("dogs").delete().eq("id", parseInt(id));
-                    router.push("/");
-                  }
-                }}
-                className="px-4 py-1.5 bg-red-50 text-red-500 rounded-lg text-xs font-bold hover:bg-red-100"
-              >
-                삭제
-              </button>
-            </>
-          )}
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex items-start justify-between gap-4">
+          <h1 className="text-2xl md:text-3xl font-bold">{dog.title}</h1>
+          <CalendarButton dog={dog} />
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-gray-400">
+            {formatDate(dog.created_at)}
+          </span>
+          <div className="flex gap-2">
+            {isOwner && (
+              <>
+                <Link
+                  href={`/edit/${id}`}
+                  className="px-4 py-1.5 bg-gray-100 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-200"
+                >
+                  수정
+                </Link>
+                <button
+                  onClick={async () => {
+                    if (confirm("정말 삭제하시겠습니까?")) {
+                      await supabase
+                        .from("dogs")
+                        .delete()
+                        .eq("id", parseInt(id));
+                      router.push("/");
+                    }
+                  }}
+                  className="px-4 py-1.5 bg-red-50 text-red-500 rounded-lg text-xs font-bold hover:bg-red-100"
+                >
+                  삭제
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

@@ -5,7 +5,6 @@ export interface Dog {
   content: string;
   image_url: string;
   people: number;
-  hashtags: string[];
   created_at: string;
   deadline: string;
   status: "모집중" | "마감" | "완료";
