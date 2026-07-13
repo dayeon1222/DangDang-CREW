@@ -4,7 +4,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
-import { WalkingUser, DogData, Profile } from "@/types/dog";
+import { WalkingUser, DogData } from "@/types/dog";
 
 export default function ParkDetailPage() {
   const params = useParams();
@@ -29,43 +29,28 @@ export default function ParkDetailPage() {
         return;
       }
 
-      const { data: dogData, error: dogError } = await supabase
+      const { data: dogData } = await supabase
         .from("dogs")
         .select("user_id, status")
         .eq("location_id", locationId)
         .neq("status", "완료");
-
-      if (dogError) {
-        console.error("Dogs 조회 에러:", dogError);
-      }
 
       if (dogData && dogData.length > 0) {
         const userIds = Array.from(
           new Set(dogData.map((d: DogData) => d.user_id)),
         );
 
-        const { data: profileData, error: profileError } = await supabase
+        const { data: profileData } = await supabase
           .from("profiles")
           .select("id, nickname, avatar_url")
           .in("id", userIds);
 
-        if (profileError) {
-          console.error("Profiles 조회 에러:", profileError);
-        }
-
         if (profileData) {
-          // 데이터 병합
-          const formattedUsers: WalkingUser[] = profileData.map(
-            (p: {
-              id: string;
-              nickname: string | null;
-              avatar_url: string | null;
-            }) => ({
-              user_id: p.id,
-              nickname: p.nickname || "이름 없음",
-              avatar_url: p.avatar_url || "/default-avatar.png",
-            }),
-          );
+          const formattedUsers: WalkingUser[] = profileData.map((p) => ({
+            user_id: p.id,
+            nickname: p.nickname || "이름 없음",
+            avatar_url: p.avatar_url || "/default-avatar.png",
+          }));
           setUsers(formattedUsers);
         }
       }
@@ -74,7 +59,6 @@ export default function ParkDetailPage() {
     init();
   }, [locationId]);
 
-  // 산책 시작/종료 로직
   const toggleWalk = async (isCheckingIn: boolean) => {
     if (!currentUser) return;
 
@@ -87,46 +71,69 @@ export default function ParkDetailPage() {
       })
       .eq("user_id", currentUser.id);
 
-    if (error) alert("실패했습니다.");
+    if (error) alert("잠시 후 다시 시도해주세요.");
     else window.location.reload();
   };
 
-  if (loading) return <div>로딩중...</div>;
+  if (loading) {
+    return (
+      <div className="p-10 text-center text-gray-500 font-bold">로딩중...</div>
+    );
+  }
+
+  const isAlreadyWalking = users.find((u) => u.user_id === currentUser?.id);
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-white min-h-screen">
-      <h1 className="text-2xl font-bold mb-6">{locationName}</h1>
+    <div className="max-w-2xl mx-auto px-4 py-8 min-h-screen">
+      <h1 className="text-2xl md:text-3xl font-bold mb-8 text-secondary">
+        {locationName}
+      </h1>
 
       <button
-        onClick={() =>
-          toggleWalk(!users.find((u) => u.user_id === currentUser?.id))
-        }
-        className="w-full py-4 rounded-2xl font-bold mb-10 bg-primary text-white"
+        onClick={() => toggleWalk(!isAlreadyWalking)}
+        className={`w-full py-5 rounded-3xl font-bold mb-10 transition-all active:scale-95 shadow-lg ${
+          isAlreadyWalking
+            ? "bg-red-50 text-red-500 hover:bg-red-100"
+            : "bg-primary text-white hover:bg-primary/90"
+        }`}
       >
-        {users.find((u) => u.user_id === currentUser?.id)
+        {isAlreadyWalking
           ? "산책 종료하기 (체크아웃)"
           : "이 공원에서 산책 시작하기"}
       </button>
 
-      <h2 className="font-bold text-lg mb-4">
-        현재 산책 중인 친구들 ({users.length}명)
+      <h2 className="font-bold text-lg mb-6 flex items-center gap-2">
+        현재 산책 중인 친구들
+        <span className="text-primary bg-primary/10 px-3 py-1 rounded-full text-sm">
+          {users.length}명
+        </span>
       </h2>
 
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {users.map((u) => (
           <div
             key={u.user_id}
-            className="flex items-center gap-4 p-3 border rounded-2xl"
+            className="flex items-center gap-4 p-4 border border-gray-100 rounded-3xl bg-white shadow-sm hover:border-primary/20 transition-all"
           >
             <img
               src={u.avatar_url}
-              className="w-12 h-12 rounded-full object-cover"
+              className="w-14 h-14 rounded-full object-cover border-2 border-gray-50"
               alt="avatar"
             />
-            <div className="font-semibold">{u.nickname}</div>
+            <div>
+              <p className="font-bold text-gray-800">{u.nickname}</p>
+              <p className="text-xs text-gray-400">산책 중</p>
+            </div>
           </div>
         ))}
       </div>
+
+      {users.length === 0 && (
+        <div className="text-center py-20 text-gray-400 bg-gray-50 rounded-3xl">
+          현재 산책 중인 친구가 없어요.
+          <br />첫 번째로 산책을 시작해보세요!
+        </div>
+      )}
     </div>
   );
 }

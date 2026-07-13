@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Post } from "@/types/dog";
+import { Post } from "@/types/community";
 import {
   ArrowLeft,
   Trash2,
@@ -13,12 +13,12 @@ import {
   Send,
   CornerDownRight,
 } from "lucide-react";
-import { Comment } from "@/types/dog";
+import { Comment } from "@/types/community";
 
 export default function PostDetailPage() {
   const { id } = useParams();
   const router = useRouter();
-  const textareaRef = useRef<HTMLTextAreaElement>(null); // 입력창 제어용 ref
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
@@ -129,20 +129,22 @@ export default function PostDetailPage() {
     setIsLiked(!isLiked);
   };
 
-  if (loading) return <div className="p-10 text-center">불러오는 중...</div>;
+  if (loading)
+    return <div className="p-10 text-center text-gray-500">불러오는 중...</div>;
   if (!post) return null;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 bg-white min-h-screen pb-20">
-      <div className="flex justify-between items-center mb-6">
+    <div className="max-w-2xl mx-auto px-4 py-6 md:py-8 bg-white min-h-screen">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6 sticky top-0 bg-white/95 backdrop-blur-sm z-10 py-2">
         <button
           onClick={() => router.back()}
-          className="p-2 -ml-2 hover:bg-gray-100 rounded-full"
+          className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition-colors"
         >
           <ArrowLeft size={24} />
         </button>
         {userId === post.user_id && (
-          <div className="flex gap-2">
+          <div className="flex gap-1">
             <button
               onClick={() => router.push(`/community/edit/${id}`)}
               className="p-2 text-gray-500 hover:bg-gray-100 rounded-full"
@@ -156,7 +158,7 @@ export default function PostDetailPage() {
                   router.push("/community");
                 }
               }}
-              className="p-2 text-red-500 rounded-full"
+              className="p-2 text-red-500 hover:bg-red-50 rounded-full"
             >
               <Trash2 size={20} />
             </button>
@@ -164,39 +166,52 @@ export default function PostDetailPage() {
         )}
       </div>
 
+      {/* Article */}
       <article className="mb-8">
-        <h1 className="text-3xl font-bold mb-4">{post.title}</h1>
+        <h1 className="text-2xl md:text-3xl font-bold mb-4 leading-tight">
+          {post.title}
+        </h1>
         {post.image_url && (
-          <img src={post.image_url} className="w-full rounded-2xl mb-6" />
+          <div className="relative w-full aspect-video mb-6">
+            <img
+              src={post.image_url}
+              className="w-full h-full object-cover rounded-2xl shadow-sm"
+              alt="post image"
+            />
+          </div>
         )}
-        <p className="text-lg text-gray-700 whitespace-pre-line">
+        <p className="text-base md:text-lg text-gray-700 whitespace-pre-line leading-relaxed">
           {post.content}
         </p>
       </article>
 
-      <div className="flex gap-4 border-y py-4 mb-8">
+      {/* Like & Stats */}
+      <div className="flex gap-6 border-y border-gray-100 py-4 mb-8">
         <button
           onClick={toggleLike}
-          className={`flex items-center gap-2 font-bold ${isLiked ? "text-red-500" : "text-gray-500"}`}
+          className={`flex items-center gap-2 font-bold transition-colors ${isLiked ? "text-red-500" : "text-gray-500 hover:text-gray-700"}`}
         >
-          <Heart size={24} fill={isLiked ? "currentColor" : "none"} /> 좋아요{" "}
-          {likeCount}
+          <Heart size={24} fill={isLiked ? "currentColor" : "none"} />
+          좋아요 {likeCount}
         </button>
         <div className="flex items-center gap-2 text-gray-500 font-bold">
           <MessageCircle size={24} /> 댓글 {comments.length}
         </div>
       </div>
 
-      <section>
-        <h3 className="font-bold text-lg mb-4">
+      {/* Comments Section */}
+      <section className="pb-10">
+        <h3 className="font-bold text-lg mb-4 text-gray-900">
           {replyTo ? "답글 작성 중..." : `댓글 ${comments.length}`}
         </h3>
-        <div className="flex gap-2 mb-6">
+
+        {/* Comment Input */}
+        <div className="flex gap-2 mb-8 bg-gray-50 p-2 rounded-xl">
           <textarea
-            ref={textareaRef} // ref 연결
+            ref={textareaRef}
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
-            className="flex-1 p-3 border border-gray-200 rounded-lg"
+            className="flex-1 p-3 bg-transparent rounded-lg focus:outline-none text-sm md:text-base resize-none"
             placeholder={
               replyTo ? "답글을 입력하세요..." : "댓글을 입력하세요..."
             }
@@ -204,23 +219,26 @@ export default function PostDetailPage() {
           />
           <button
             onClick={() => handleAddComment(replyTo)}
-            className="bg-primary text-white px-6 rounded-lg font-bold"
+            className="bg-primary hover:bg-opacity-90 text-white px-4 md:px-6 rounded-lg font-bold transition-all"
           >
             <Send size={20} />
           </button>
         </div>
 
-        <div className="space-y-4">
+        {/* Comment List */}
+        <div className="space-y-6">
           {comments
             .filter((c) => !c.parent_id)
             .map((c) => (
-              <div key={c.id}>
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="text-sm font-bold text-gray-700">
+              <div key={c.id} className="space-y-2">
+                <div className="p-4 bg-gray-50 rounded-2xl">
+                  <p className="text-xs font-bold text-gray-400 mb-1">
                     {c.profiles?.nickname || "익명"}
                   </p>
-                  <p className="text-gray-600 mt-1">{c.content}</p>
-                  <div className="flex gap-4 mt-2 text-xs">
+                  <p className="text-gray-700 text-sm md:text-base">
+                    {c.content}
+                  </p>
+                  <div className="flex gap-4 mt-3 text-xs font-bold">
                     <button
                       onClick={() =>
                         toggleCommentLike(
@@ -231,7 +249,7 @@ export default function PostDetailPage() {
                       className={
                         c.comment_likes.some((l) => l.user_id === userId)
                           ? "text-red-500"
-                          : "text-gray-500"
+                          : "text-gray-400 hover:text-gray-600"
                       }
                     >
                       좋아요 {c.comment_likes.length}
@@ -241,25 +259,32 @@ export default function PostDetailPage() {
                         setReplyTo(c.id);
                         textareaRef.current?.focus();
                       }}
-                      className="text-gray-500"
+                      className="text-gray-400 hover:text-gray-600"
                     >
                       답글달기
                     </button>
                   </div>
                 </div>
+
+                {/* Replies */}
                 {comments
                   .filter((r) => r.parent_id === c.id)
                   .map((r) => (
                     <div
                       key={r.id}
-                      className="ml-10 mt-2 p-4 bg-gray-100 rounded-xl flex gap-2"
+                      className="ml-6 md:ml-10 p-4 bg-white border border-gray-100 rounded-2xl flex gap-3 shadow-sm"
                     >
-                      <CornerDownRight size={16} className="text-gray-400" />
+                      <CornerDownRight
+                        size={16}
+                        className="text-gray-300 mt-1"
+                      />
                       <div>
-                        <p className="text-sm font-bold text-gray-700">
+                        <p className="text-xs font-bold text-gray-400 mb-1">
                           {r.profiles?.nickname || "익명"}
                         </p>
-                        <p className="text-gray-600 mt-1">{r.content}</p>
+                        <p className="text-gray-700 text-sm md:text-base">
+                          {r.content}
+                        </p>
                       </div>
                     </div>
                   ))}

@@ -18,7 +18,7 @@ export default function EditPage() {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
 
-  //  기존 게시글 정보 불러오기
+  // 기존 게시글 정보 불러오기
   useEffect(() => {
     const fetchPost = async () => {
       const { data, error } = await supabase
@@ -94,15 +94,17 @@ export default function EditPage() {
     setLoading(false);
   };
 
-  if (fetching) return <div className="p-10 text-center">불러오는 중...</div>;
+  if (fetching)
+    return <div className="p-10 text-center text-gray-500">불러오는 중...</div>;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 bg-white min-h-screen">
-      <h1 className="text-2xl font-bold mb-6">글 수정하기</h1>
+      <h1 className="text-2xl font-bold mb-8">글 수정하기</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {/* 카테고리 선택 */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
+          <label className="block text-sm font-bold text-gray-700 mb-3">
             카테고리
           </label>
           <div className="flex gap-4">
@@ -111,10 +113,10 @@ export default function EditPage() {
                 key={cat}
                 type="button"
                 onClick={() => setCategory(cat)}
-                className={`flex-1 py-2 rounded-lg font-medium border ${
+                className={`flex-1 py-3 rounded-lg font-bold border transition-colors ${
                   category === cat
                     ? "bg-primary text-white border-primary"
-                    : "bg-white text-gray-500 border-gray-200"
+                    : "bg-white text-gray-500 border-gray-200 hover:border-primary"
                 }`}
               >
                 {cat}
@@ -123,8 +125,9 @@ export default function EditPage() {
           </div>
         </div>
 
+        {/* 사진 업로드 */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
+          <label className="block text-sm font-bold text-gray-700 mb-3">
             사진
           </label>
           <div className="flex gap-4 items-center">
@@ -147,7 +150,7 @@ export default function EditPage() {
                 <img
                   src={imagePreview}
                   alt="미리보기"
-                  className="w-full h-full object-cover rounded-xl"
+                  className="w-full h-full object-cover rounded-xl shadow-sm"
                 />
                 <button
                   type="button"
@@ -155,17 +158,18 @@ export default function EditPage() {
                     setImageFile(null);
                     setImagePreview(null);
                   }}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5"
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md"
                 >
-                  <X size={12} />
+                  <X size={14} />
                 </button>
               </div>
             )}
           </div>
         </div>
 
+        {/* 제목 */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
+          <label className="block text-sm font-bold text-gray-700 mb-3">
             제목
           </label>
           <input
@@ -173,26 +177,30 @@ export default function EditPage() {
             required
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none"
+            className="w-full p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none text-base"
+            placeholder="제목을 입력하세요"
           />
         </div>
 
+        {/* 내용 */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
+          <label className="block text-sm font-bold text-gray-700 mb-3">
             내용
           </label>
           <textarea
             required
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="w-full h-40 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none resize-none"
+            className="w-full h-48 p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none text-base resize-none"
+            placeholder="내용을 입력하세요"
           />
         </div>
 
+        {/* 제출 버튼 */}
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-4 bg-primary text-white font-bold rounded-xl hover:bg-primary-dark transition-colors"
+          className="w-full py-4 bg-primary text-white font-bold rounded-xl hover:bg-opacity-90 transition-all disabled:bg-gray-300 shadow-lg"
         >
           {loading ? "수정 중..." : "수정 완료"}
         </button>

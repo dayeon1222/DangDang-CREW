@@ -4,7 +4,7 @@ import { Map, CustomOverlayMap, useKakaoLoader } from "react-kakao-maps-sdk";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { Location, ParkPlace } from "@/types/dog";
+import { Location, ParkPlace } from "@/types/common";
 import { Dog } from "lucide-react";
 
 export default function MapPage() {
@@ -32,7 +32,6 @@ export default function MapPage() {
     );
   }, []);
 
-  // 공원 정보 가져오기
   useEffect(() => {
     if (!myLoc || !window.kakao) return;
 
@@ -58,7 +57,6 @@ export default function MapPage() {
     );
   }, [myLoc]);
 
-  // 산책 중인 게시글 전체 집계 (지도 마커용)
   useEffect(() => {
     const fetchWalkingData = async () => {
       const { data } = await supabase
@@ -83,7 +81,6 @@ export default function MapPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // 선택한 강아지 크기별 산책 모집글 검색 로직
   const handleAiRecommend = async (size: string) => {
     setIsAiOpen(true);
     setAiResult(`${size} 친구들의 산책 모집글을 찾는 중입니다...`);
@@ -92,7 +89,7 @@ export default function MapPage() {
       const { data, error } = await supabase
         .from("dogs")
         .select("title, location_name")
-        .eq("dog_size", size) // 테이블의 dog_size 컬럼과 비교
+        .eq("dog_size", size)
         .neq("status", "완료");
 
       if (error) throw error;
@@ -109,93 +106,87 @@ export default function MapPage() {
       }
     } catch (err) {
       setAiResult("모집글을 불러오는 중 오류가 발생했습니다.");
-      console.error(err);
     }
   };
 
   if (loading) {
     return (
-      <div className="w-full h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center font-bold text-lg text-gray-700">
-          지도를 불러오는 중...
-        </div>
+      <div className="w-full h-screen flex items-center justify-center bg-gray-50 text-gray-500 font-bold">
+        지도를 불러오는 중...
       </div>
     );
   }
 
   if (!myLoc) {
     return (
-      <div className="w-full h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center font-bold text-lg text-gray-700">
-          위치 확인 중입니다...
-        </div>
+      <div className="w-full h-screen flex items-center justify-center bg-gray-50 text-gray-500 font-bold">
+        위치 확인 중입니다...
       </div>
     );
   }
 
   return (
-    <div className="relative w-full h-screen flex items-center justify-center bg-gray-50">
-      <div style={{ width: "100%", height: "100%" }}>
-        <Map center={myLoc} style={{ width: "100%", height: "100%" }} level={5}>
-          {parks.map((park) => {
-            const parkId = String(park.id).trim();
-            const count = walkingCounts[parkId];
+    <div className="relative w-full h-[calc(100vh-60px)] md:h-screen flex flex-col">
+      <Map center={myLoc} style={{ width: "100%", height: "100%" }} level={5}>
+        {parks.map((park) => {
+          const parkId = String(park.id).trim();
+          const count = walkingCounts[parkId];
 
-            return (
-              <CustomOverlayMap
-                key={park.id}
-                position={{ lat: parseFloat(park.y), lng: parseFloat(park.x) }}
+          return (
+            <CustomOverlayMap
+              key={park.id}
+              position={{ lat: parseFloat(park.y), lng: parseFloat(park.x) }}
+            >
+              <div
+                className="bg-white border-2 border-primary p-2 rounded-2xl shadow-lg cursor-pointer hover:scale-105 transition-transform"
+                onClick={() =>
+                  router.push(
+                    `/park/${park.id}?name=${encodeURIComponent(park.place_name)}`,
+                  )
+                }
               >
-                <div
-                  className="bg-white border-2 border-primary p-2 rounded-2xl shadow-lg cursor-pointer hover:border-primary hover:shadow-[0_8px_16px_rgba(109,152,134,0.2)] hover:-translate-y-1 transition-all"
-                  onClick={() =>
-                    router.push(
-                      `/park/${park.id}?name=${encodeURIComponent(park.place_name)}`,
-                    )
-                  }
-                >
-                  <div className="text-sm font-bold text-gray-800">
-                    {park.place_name}
-                  </div>
-                  <div className="text-xs text-primary font-bold mt-1 flex items-center gap-1">
-                    {count && count > 0 ? (
-                      <>
-                        <Dog size={14} />
-                        <span>{count}건의 산책 모집중</span>
-                      </>
-                    ) : (
-                      "산책 중인 친구 없음"
-                    )}
-                  </div>
+                <div className="text-sm font-bold text-gray-800 whitespace-nowrap px-1">
+                  {park.place_name}
                 </div>
-              </CustomOverlayMap>
-            );
-          })}
-        </Map>
-      </div>
+                <div className="text-[10px] sm:text-xs text-primary font-bold mt-1 flex items-center justify-center gap-1">
+                  {count && count > 0 ? (
+                    <>
+                      <Dog size={12} />
+                      <span>{count}건 모집중</span>
+                    </>
+                  ) : (
+                    "산책 친구 없음"
+                  )}
+                </div>
+              </div>
+            </CustomOverlayMap>
+          );
+        })}
+      </Map>
 
+      {/* Floating Action Buttons */}
       <button
         onClick={() => setIsAiOpen(!isAiOpen)}
-        className="fixed bottom-8 right-8 z-10 bg-primary text-white px-6 py-3 rounded-full shadow-xl hover:bg-primary-dark transition-all"
+        className="fixed bottom-6 right-6 z-20 bg-primary text-white p-4 rounded-full shadow-2xl hover:bg-primary/90 transition-all active:scale-95"
       >
-        댕댕크루 찾기
+        <Dog size={24} />
       </button>
 
       {isAiOpen && (
-        <div className="fixed bottom-24 right-8 z-10 w-80 bg-white p-4 rounded-2xl shadow-2xl border">
-          <h3 className="font-bold mb-2">어떤 친구와 산책할까요?</h3>
+        <div className="fixed bottom-20 right-4 sm:right-6 z-20 w-[calc(100vw-32px)] sm:w-80 bg-white p-5 rounded-3xl shadow-2xl border border-gray-100">
+          <h3 className="font-bold text-lg mb-3">어떤 친구와 산책할까요?</h3>
           <div className="flex gap-2 mb-4">
             {["소형견", "중형견", "대형견"].map((dog_size) => (
               <button
                 key={dog_size}
                 onClick={() => handleAiRecommend(dog_size)}
-                className="px-3 py-1 bg-primary text-white text-xs rounded-full hover:bg-primary-dark transition-all"
+                className="flex-1 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/90 transition-all"
               >
                 {dog_size}
               </button>
             ))}
           </div>
-          <div className="p-2 border rounded text-sm text-gray-600 max-h-60 overflow-y-auto whitespace-pre-line">
+          <div className="p-3 bg-gray-50 rounded-2xl text-sm text-gray-600 max-h-48 overflow-y-auto whitespace-pre-line leading-relaxed">
             {aiResult}
           </div>
         </div>

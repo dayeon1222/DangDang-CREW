@@ -1,16 +1,19 @@
 "use client";
 
-import { useState, useEffect, ChangeEvent } from "react";
+import { useState, useEffect, ChangeEvent, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { Camera } from "lucide-react";
 
 export default function EditProfilePage() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [nickname, setNickname] = useState("");
   const [bio, setBio] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState(""); // 사진 URL
-  const [file, setFile] = useState<File | null>(null); // 업로드할 파일
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(true);
+  const [previewUrl, setPreviewUrl] = useState<string>("");
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -29,6 +32,7 @@ export default function EditProfilePage() {
         setNickname(data.nickname || "");
         setBio(data.bio || "");
         setAvatarUrl(data.avatar_url || "");
+        setPreviewUrl(data.avatar_url || "");
       }
       setLoading(false);
     };
@@ -37,7 +41,9 @@ export default function EditProfilePage() {
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
+      setPreviewUrl(URL.createObjectURL(selectedFile));
     }
   };
 
@@ -49,10 +55,9 @@ export default function EditProfilePage() {
 
     let newAvatarUrl = avatarUrl;
 
-    // 파일이 선택되었다면 스토리지에 업로드
     if (file) {
       const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage
         .from("avatars")
         .upload(fileName, file);
@@ -60,12 +65,10 @@ export default function EditProfilePage() {
       if (uploadError)
         return alert("이미지 업로드 실패: " + uploadError.message);
 
-      // 이미지 URL 가져오기
       const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
       newAvatarUrl = data.publicUrl;
     }
 
-    //  DB 업데이트
     const { error } = await supabase
       .from("profiles")
       .update({ nickname, bio, avatar_url: newAvatarUrl })
@@ -78,42 +81,69 @@ export default function EditProfilePage() {
     }
   };
 
-  if (loading) return <div>로딩 중...</div>;
+  if (loading)
+    return (
+      <div className="p-10 text-center font-bold text-gray-500">로딩 중...</div>
+    );
 
   return (
-    <div className="max-w-md mx-auto p-6">
-      <h1 className="text-xl font-bold mb-6">프로필 수정</h1>
+    <div className="max-w-md mx-auto p-6 min-h-screen">
+      <h1 className="text-2xl font-bold mb-8 text-secondary">프로필 수정</h1>
 
       {/* 사진 수정 */}
-      <div className="mb-6 flex flex-col items-center">
-        <img
-          src={avatarUrl || "https://via.placeholder.com/100"}
-          className="w-24 h-24 rounded-full mb-2 object-cover"
-        />
-        <input type="file" onChange={handleFileChange} />
-      </div>
-
-      <div className="mb-4">
-        <label className="block mb-2">닉네임</label>
+      <div className="mb-8 flex flex-col items-center">
+        <div
+          className="relative w-32 h-32 mb-4 group cursor-pointer"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <img
+            src={previewUrl || "https://via.placeholder.com/150"}
+            className="w-full h-full rounded-full object-cover border-4 border-gray-100 shadow-md"
+            alt="프로필 미리보기"
+          />
+          <div className="absolute inset-0 bg-black/30 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <Camera className="text-white" size={32} />
+          </div>
+        </div>
         <input
-          value={nickname}
-          onChange={(e) => setNickname(e.target.value)}
-          className="w-full p-2 border rounded"
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          className="hidden"
+          accept="image/*"
         />
+        <p className="text-xs text-gray-400">클릭하여 사진을 변경하세요</p>
       </div>
 
-      <div className="mb-6">
-        <label className="block mb-2">소개글</label>
-        <textarea
-          value={bio}
-          onChange={(e) => setBio(e.target.value)}
-          className="w-full p-2 border rounded"
-        />
+      <div className="space-y-6">
+        <div>
+          <label className="block mb-2 font-bold text-sm text-gray-700">
+            닉네임
+          </label>
+          <input
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+            className="w-full p-4 border-2 border-gray-100 rounded-2xl focus:border-primary outline-none transition"
+            placeholder="닉네임을 입력하세요"
+          />
+        </div>
+
+        <div>
+          <label className="block mb-2 font-bold text-sm text-gray-700">
+            소개글
+          </label>
+          <textarea
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            className="w-full p-4 border-2 border-gray-100 rounded-2xl focus:border-primary outline-none transition h-32 resize-none"
+            placeholder="나를 소개하는 글을 적어보세요"
+          />
+        </div>
       </div>
 
       <button
         onClick={updateProfile}
-        className="w-full py-2 bg-blue-500 text-white rounded"
+        className="w-full py-4 mt-8 bg-primary text-white rounded-2xl font-bold hover:bg-primary/90 transition shadow-lg active:scale-[0.98]"
       >
         저장하기
       </button>

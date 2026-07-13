@@ -40,7 +40,7 @@ export default function WritePage() {
 
     let imageUrl = null;
 
-    //  이미지 업로드
+    // 이미지 업로드
     if (imageFile) {
       const fileExt = imageFile.name.split(".").pop();
       const fileName = `${Math.random()}.${fileExt}`;
@@ -82,12 +82,12 @@ export default function WritePage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 bg-white min-h-screen">
-      <h1 className="text-2xl font-bold mb-6">글쓰기</h1>
+      <h1 className="text-2xl font-bold mb-8">글쓰기</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-8">
         {/* 카테고리 선택 */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
+          <label className="block text-sm font-bold text-gray-700 mb-3">
             카테고리
           </label>
           <div className="flex gap-4">
@@ -96,10 +96,10 @@ export default function WritePage() {
                 key={cat}
                 type="button"
                 onClick={() => setCategory(cat)}
-                className={`flex-1 py-2 rounded-lg font-medium border ${
+                className={`flex-1 py-3 rounded-lg font-bold border transition-colors ${
                   category === cat
                     ? "bg-primary text-white border-primary"
-                    : "bg-white text-gray-500 border-gray-200"
+                    : "bg-white text-gray-500 border-gray-200 hover:border-primary"
                 }`}
               >
                 {cat}
@@ -110,14 +110,14 @@ export default function WritePage() {
 
         {/* 이미지 업로드 */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
+          <label className="block text-sm font-bold text-gray-700 mb-3">
             사진 첨부
           </label>
           <div className="flex gap-4 items-center">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="w-24 h-24 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center text-gray-400 hover:border-primary hover:text-primary transition-colors"
+              className="w-24 h-24 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center text-gray-400 hover:border-primary hover:text-primary transition-all"
             >
               <ImageIcon size={24} />
               <span className="text-[10px] mt-1">사진 추가</span>
@@ -135,7 +135,7 @@ export default function WritePage() {
                 <img
                   src={imagePreview}
                   alt="미리보기"
-                  className="w-full h-full object-cover rounded-xl"
+                  className="w-full h-full object-cover rounded-xl shadow-sm"
                 />
                 <button
                   type="button"
@@ -143,9 +143,9 @@ export default function WritePage() {
                     setImageFile(null);
                     setImagePreview(null);
                   }}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5"
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md"
                 >
-                  <X size={12} />
+                  <X size={14} />
                 </button>
               </div>
             )}
@@ -154,7 +154,7 @@ export default function WritePage() {
 
         {/* 제목 */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
+          <label className="block text-sm font-bold text-gray-700 mb-3">
             제목
           </label>
           <input
@@ -162,29 +162,30 @@ export default function WritePage() {
             required
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none"
+            className="w-full p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none text-base"
             placeholder="제목을 입력하세요"
           />
         </div>
 
         {/* 내용 */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-2">
+          <label className="block text-sm font-bold text-gray-700 mb-3">
             내용
           </label>
           <textarea
             required
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="w-full h-40 p-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none resize-none"
+            className="w-full h-48 p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none text-base resize-none"
             placeholder="내용을 입력하세요"
           />
         </div>
 
+        {/* 제출 버튼 */}
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-4 bg-primary text-white font-bold rounded-xl hover:bg-primary-dark transition-colors"
+          className="w-full py-4 bg-primary text-white font-bold rounded-xl hover:bg-opacity-90 transition-all disabled:bg-gray-300 shadow-lg"
         >
           {loading ? "등록 중..." : "등록하기"}
         </button>

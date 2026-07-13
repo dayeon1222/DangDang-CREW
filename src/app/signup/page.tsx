@@ -43,8 +43,8 @@ export default function SignupPage() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[calc(100vh-120px)] p-4">
-      <div className="bg-[#FFFDF5] p-8 rounded-[40px] shadow-xl border-2 border-primary/20 w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-center mb-2 text-[#5C4033]">
+      <div className="bg-[#FFFDF5] p-8 sm:p-10 rounded-[40px] shadow-xl border-2 border-primary/20 w-full max-w-sm">
+        <h1 className="text-2xl font-bold text-center mb-2 text-primary">
           댕댕크루의 친구가 되어주세요!
         </h1>
         <p className="text-center text-gray-500 mb-8 text-sm">
@@ -52,7 +52,7 @@ export default function SignupPage() {
         </p>
 
         {errorMsg && (
-          <p className="text-red-500 text-xs bg-red-50 p-2 rounded-xl mb-4 text-center">
+          <p className="text-red-500 text-xs bg-red-50 p-3 rounded-xl mb-4 text-center border border-red-100">
             {errorMsg}
           </p>
         )}
@@ -62,24 +62,36 @@ export default function SignupPage() {
             className="w-full p-4 border-2 border-primary/30 rounded-2xl focus:border-primary outline-none transition text-sm bg-white"
             type="email"
             placeholder="이메일"
-            onChange={(e) => setEmail(e.target.value)}
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setErrorMsg("");
+            }}
           />
           <input
             className="w-full p-4 border-2 border-primary/30 rounded-2xl focus:border-primary outline-none transition text-sm bg-white"
             type="password"
             placeholder="비밀번호 (8자 이상, 특수문자 포함)"
-            onChange={(e) => setPassword(e.target.value)}
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setErrorMsg("");
+            }}
           />
           <input
             className="w-full p-4 border-2 border-primary/30 rounded-2xl focus:border-primary outline-none transition text-sm bg-white"
             type="password"
             placeholder="비밀번호 확인"
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            value={confirmPassword}
+            onChange={(e) => {
+              setConfirmPassword(e.target.value);
+              setErrorMsg("");
+            }}
           />
         </div>
 
         <button
-          className="w-full bg-[#8B4513] hover:bg-[#5C2E0A] text-white p-4 rounded-2xl font-bold mt-8 transition shadow-lg shadow-brown-500/30"
+          className="w-full bg-primary hover:bg-primary-dark text-white p-4 rounded-2xl font-bold mt-8 transition shadow-lg active:scale-[0.98]"
           onClick={handleSignup}
         >
           회원가입 하기
@@ -89,7 +101,7 @@ export default function SignupPage() {
           이미 계정이 있으신가요?{" "}
           <Link
             href="/login"
-            className="text-[#6B8E23] font-bold hover:underline"
+            className="text-secondary font-bold hover:underline"
           >
             로그인
           </Link>

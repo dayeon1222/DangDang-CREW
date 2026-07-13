@@ -4,7 +4,7 @@ import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { PawPrint, Dog } from "lucide-react";
-import { Participant, ReviewData } from "@/types/dog";
+import { Participant, ReviewData } from "@/types/user";
 
 export default function ReviewPage({
   params,
@@ -96,60 +96,71 @@ export default function ReviewPage({
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6 text-center">
+    <div className="max-w-2xl mx-auto px-4 py-8 bg-white min-h-screen">
+      <h1 className="text-2xl font-bold mb-8 text-center text-gray-900">
         함께 산책한 친구들
       </h1>
-      {reviewTargets.map((p) => (
-        <div
-          key={p.user_id}
-          className="mb-8 p-6 border rounded-2xl shadow-sm bg-white"
-        >
-          <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
-            <Dog size={24} className="text-orange-500" />
-            {p.profiles?.nickname || "익명의 친구"}
-          </h2>
-          <div className="flex gap-2 mb-4">
-            {[1, 2, 3, 4, 5].map((num) => (
-              <button
-                key={num}
-                onClick={() =>
-                  setReviews((prev) => ({
-                    ...prev,
-                    [p.user_id]: {
-                      ...(prev[p.user_id] || { content: "" }),
-                      rating: num,
-                    },
-                  }))
-                }
-              >
-                <PawPrint
-                  className={`w-10 h-10 transition-colors ${(reviews[p.user_id]?.rating || 0) >= num ? "text-orange-500 fill-orange-500" : "text-gray-300"}`}
-                />
-              </button>
-            ))}
+
+      <div className="space-y-6">
+        {reviewTargets.map((p) => (
+          <div
+            key={p.user_id}
+            className="p-5 sm:p-6 border border-gray-100 rounded-2xl shadow-sm bg-gray-50/50"
+          >
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-800">
+              <Dog size={24} className="text-primary" />
+              {p.profiles?.nickname || "익명의 친구"}
+            </h2>
+
+            <div className="flex gap-2 mb-4">
+              {[1, 2, 3, 4, 5].map((num) => (
+                <button
+                  key={num}
+                  type="button"
+                  onClick={() =>
+                    setReviews((prev) => ({
+                      ...prev,
+                      [p.user_id]: {
+                        ...(prev[p.user_id] || { content: "" }),
+                        rating: num,
+                      },
+                    }))
+                  }
+                  className="hover:scale-110 transition-transform"
+                >
+                  <PawPrint
+                    className={`w-10 h-10 transition-colors ${(reviews[p.user_id]?.rating || 0) >= num ? "text-primary fill-primary" : "text-gray-300"}`}
+                  />
+                </button>
+              ))}
+            </div>
+
+            <textarea
+              className="w-full p-4 border border-gray-200 rounded-xl bg-white focus:ring-2 focus:ring-primary outline-none text-base resize-none"
+              placeholder="이 친구와 산책은 어땠나요?"
+              rows={3}
+              onChange={(e) =>
+                setReviews((prev) => ({
+                  ...prev,
+                  [p.user_id]: {
+                    ...(prev[p.user_id] || { rating: 0 }),
+                    content: e.target.value,
+                  },
+                }))
+              }
+            />
           </div>
-          <textarea
-            className="w-full p-3 border rounded-xl bg-gray-50"
-            placeholder="이 친구와 산책은 어땠나요?"
-            onChange={(e) =>
-              setReviews((prev) => ({
-                ...prev,
-                [p.user_id]: {
-                  ...(prev[p.user_id] || { rating: 0 }),
-                  content: e.target.value,
-                },
-              }))
-            }
-          />
-        </div>
-      ))}
-      <button
-        onClick={submitReviews}
-        className="w-full py-4 bg-primary text-white rounded-2xl font-bold text-lg"
-      >
-        모든 후기 저장하기
-      </button>
+        ))}
+      </div>
+
+      <div className="mt-8">
+        <button
+          onClick={submitReviews}
+          className="w-full py-4 bg-primary text-white rounded-xl font-bold text-lg hover:bg-opacity-90 transition-all shadow-lg"
+        >
+          모든 후기 저장하기
+        </button>
+      </div>
     </div>
   );
 }
