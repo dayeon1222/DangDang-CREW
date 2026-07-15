@@ -4,35 +4,45 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
   const router = useRouter();
+  const queryClient = useQueryClient();
 
-  const handleLogin = async () => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setErrorMsg("올바른 이메일 형식을 입력해주세요.");
-      return;
-    }
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-
-    if (error) {
+  const loginMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      router.push("/");
+      router.refresh();
+    },
+    onError: (error: any) => {
       setErrorMsg(
         error.message === "Invalid login credentials"
           ? "이메일이나 비밀번호가 일치하지 않습니다."
           : error.message,
       );
-    } else {
-      router.push("/");
-      router.refresh();
+    },
+  });
+
+  const handleLogin = () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setErrorMsg("올바른 이메일 형식을 입력해주세요.");
+      return;
     }
+    loginMutation.mutate();
   };
 
   return (
@@ -73,10 +83,11 @@ export default function LoginPage() {
         </div>
 
         <button
-          className="w-full bg-primary hover:bg-primary/90 text-white p-4 rounded-2xl font-bold mt-8 transition shadow-lg active:scale-[0.98]"
+          className="w-full bg-primary hover:bg-primary/90 text-white p-4 rounded-2xl font-bold mt-8 transition shadow-lg active:scale-[0.98] disabled:bg-gray-400"
           onClick={handleLogin}
+          disabled={loginMutation.isPending}
         >
-          로그인 하기
+          {loginMutation.isPending ? "로그인 중..." : "로그인 하기"}
         </button>
 
         <div className="mt-6 text-center text-xs sm:text-sm text-gray-500">

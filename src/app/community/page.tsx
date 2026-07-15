@@ -1,20 +1,21 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 import { Heart, MessageCircle } from "lucide-react";
 import { PostWithStats } from "@/types/community";
+import { useQuery } from "@tanstack/react-query";
 
 export default function CommunityPage() {
-  const [posts, setPosts] = useState<PostWithStats[]>([]);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"전체" | "자랑하기" | "고민상담">(
     "전체",
   );
 
-  useEffect(() => {
-    const fetchPosts = async () => {
+  // TanStack Query로 게시글 데이터 페칭
+  const { data: posts = [], isLoading } = useQuery({
+    queryKey: ["posts"],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("posts")
         .select(
@@ -29,19 +30,15 @@ export default function CommunityPage() {
           profiles:user_id (nickname),
           post_likes (count),
           comments (count)
-          `,
+        `,
         )
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("조회 에러:", error);
-      } else {
-        setPosts((data as unknown as PostWithStats[]) || []);
-      }
-      setLoading(false);
-    };
-    fetchPosts();
-  }, []);
+      if (error) throw error;
+      return (data as unknown as PostWithStats[]) || [];
+    },
+    staleTime: 1000 * 60, // 1분 동안 캐시 유지
+  });
 
   const filteredPosts = useMemo(() => {
     if (filter === "전체") return posts;
@@ -102,7 +99,7 @@ export default function CommunityPage() {
       </div>
 
       {/* List */}
-      {loading ? (
+      {isLoading ? (
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
             <div

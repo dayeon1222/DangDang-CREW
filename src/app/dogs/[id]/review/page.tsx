@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { PawPrint, Dog } from "lucide-react";
 import { Participant, ReviewData } from "@/types/user";
+import { useQuery, useMutation } from "@tanstack/react-query";
 
 export default function ReviewPage({
   params,
@@ -13,87 +14,88 @@ export default function ReviewPage({
 }) {
   const { id } = use(params);
   const router = useRouter();
-  const [reviewTargets, setReviewTargets] = useState<Participant[]>([]);
   const [reviews, setReviews] = useState<{ [key: string]: ReviewData }>({});
 
-  useEffect(() => {
-    const fetchReviewTargets = async () => {
+  // 참여자 목록 및 작성자 정보 페칭
+  const { data: reviewTargets = [], isLoading } = useQuery({
+    queryKey: ["review-targets", id],
+    queryFn: async () => {
       const numericId = parseInt(id);
       const {
         data: { user: currentUser },
       } = await supabase.auth.getUser();
-      if (!currentUser) return;
+      if (!currentUser) throw new Error("로그인이 필요합니다.");
 
-      // 작성자 정보
-      const { data: dogPost } = await supabase
-        .from("dogs")
-        .select("user_id")
-        .eq("id", numericId)
-        .single();
+      // 작성자 정보와 참여자 목록을 한 번에 효율적으로 가져오기 위해 병렬 처리
+      const [dogPostRes, participantsRes] = await Promise.all([
+        supabase.from("dogs").select("user_id").eq("id", numericId).single(),
+        supabase
+          .from("participants")
+          .select("user_id, profiles(nickname)")
+          .eq("post_id", numericId),
+      ]);
 
-      // 작성자의 프로필 정보 별도 조회
+      const authorId = dogPostRes.data?.user_id;
       let authorProfile = null;
-      if (dogPost) {
-        const { data: profile } = await supabase
+      if (authorId) {
+        const { data } = await supabase
           .from("profiles")
           .select("nickname")
-          .eq("id", dogPost.user_id)
+          .eq("id", authorId)
           .single();
-        authorProfile = profile;
+        authorProfile = data;
       }
 
-      // 참여자 목록
-      const { data: participants } = await supabase
-        .from("participants")
-        .select(`user_id, profiles(nickname)`)
-        .eq("post_id", numericId);
-
-      // 배열 합치기
       const allMembers = [
-        dogPost && authorProfile
-          ? { user_id: dogPost.user_id, profiles: authorProfile }
+        authorId && authorProfile
+          ? { user_id: authorId, profiles: authorProfile }
           : null,
-        ...(participants?.map((p) => ({
+        ...(participantsRes.data?.map((p) => ({
           user_id: p.user_id,
           profiles: Array.isArray(p.profiles) ? p.profiles[0] : p.profiles,
         })) || []),
       ].filter(Boolean) as Participant[];
 
-      // 본인 제외 및 중복 제거
-      const myReviewTargets = allMembers.filter(
+      return allMembers.filter(
         (member, index, self) =>
           member.user_id !== currentUser.id &&
           index === self.findIndex((t) => t.user_id === member.user_id),
       );
+    },
+  });
 
-      setReviewTargets(myReviewTargets);
-    };
+  //  후기 제출 뮤테이션
+  const submitMutation = useMutation({
+    mutationFn: async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("로그인이 필요합니다.");
 
-    fetchReviewTargets();
-  }, [id]);
+      const reviewsToInsert = Object.entries(reviews).map(
+        ([targetUserId, data]) => ({
+          post_id: parseInt(id),
+          reviewer_id: user.id,
+          target_user_id: targetUserId,
+          rating: data.rating || 0,
+          content: data.content || "",
+        }),
+      );
 
-  const submitReviews = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-    const reviewsToInsert = Object.entries(reviews).map(
-      ([targetUserId, data]) => ({
-        post_id: parseInt(id),
-        reviewer_id: user.id,
-        target_user_id: targetUserId,
-        rating: data.rating || 0,
-        content: data.content || "",
-      }),
-    );
-    const { error } = await supabase.from("reviews").insert(reviewsToInsert);
-    if (error) {
-      alert("저장 실패: " + error.message);
-    } else {
+      const { error } = await supabase.from("reviews").insert(reviewsToInsert);
+      if (error) throw error;
+    },
+    onSuccess: () => {
       alert("후기가 등록되었습니다!");
       router.push(`/dogs/${id}`);
-    }
-  };
+    },
+    onError: (error: any) => {
+      alert("저장 실패: " + error.message);
+    },
+  });
+
+  if (isLoading)
+    return <div className="p-10 text-center text-gray-500">불러오는 중...</div>;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 bg-white min-h-screen">
@@ -155,10 +157,11 @@ export default function ReviewPage({
 
       <div className="mt-8">
         <button
-          onClick={submitReviews}
-          className="w-full py-4 bg-primary text-white rounded-xl font-bold text-lg hover:bg-opacity-90 transition-all shadow-lg"
+          onClick={() => submitMutation.mutate()}
+          disabled={submitMutation.isPending}
+          className="w-full py-4 bg-primary text-white rounded-xl font-bold text-lg hover:bg-opacity-90 transition-all shadow-lg disabled:bg-gray-300"
         >
-          모든 후기 저장하기
+          {submitMutation.isPending ? "저장 중..." : "모든 후기 저장하기"}
         </button>
       </div>
     </div>

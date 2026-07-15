@@ -1,11 +1,11 @@
+"use client";
+
+import { memo } from "react";
 import { Pencil } from "lucide-react";
 import Link from "next/link";
 import { ToolBarProps } from "@/types/common";
 
-export default function ToolBar({
-  onFilterChange,
-  selectedSize,
-}: ToolBarProps) {
+const ToolBar = ({ onFilterChange, selectedSize }: ToolBarProps) => {
   return (
     <div className="flex flex-col md:flex-row justify-between items-center gap-4 w-full">
       {/* 필터 영역 */}
@@ -36,4 +36,6 @@ export default function ToolBar({
       </Link>
     </div>
   );
-}
+};
+
+export default memo(ToolBar);

@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { Image as ImageIcon, X } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function EditPage() {
   const { id } = useParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [title, setTitle] = useState("");
@@ -15,31 +17,65 @@ export default function EditPage() {
   const [category, setCategory] = useState<"자랑하기" | "고민상담">("자랑하기");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(true);
 
-  // 기존 게시글 정보 불러오기
-  useEffect(() => {
-    const fetchPost = async () => {
+  // 기존 게시글 정보 쿼리 (데이터 페칭 최적화)
+  const { isLoading: isFetching } = useQuery({
+    queryKey: ["post", id],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("posts")
         .select("*")
         .eq("id", id)
         .single();
 
-      if (error) {
-        alert("게시글을 불러올 수 없습니다.");
-        router.back();
-      } else {
-        setTitle(data.title);
-        setContent(data.content);
-        setCategory(data.category);
-        setImagePreview(data.image_url);
+      if (error) throw error;
+
+      setTitle(data.title);
+      setContent(data.content);
+      setCategory(data.category);
+      setImagePreview(data.image_url);
+      return data;
+    },
+    enabled: !!id,
+    staleTime: 0,
+  });
+
+  // 게시글 수정 뮤테이션
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      let imageUrl = imagePreview;
+
+      if (imageFile) {
+        const fileExt = imageFile.name.split(".").pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from("post-images")
+          .upload(fileName, imageFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data } = supabase.storage
+          .from("post-images")
+          .getPublicUrl(fileName);
+        imageUrl = data.publicUrl;
       }
-      setFetching(false);
-    };
-    fetchPost();
-  }, [id, router]);
+
+      const { error } = await supabase
+        .from("posts")
+        .update({ title, content, category, image_url: imageUrl })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      alert("수정되었습니다!");
+      queryClient.invalidateQueries({ queryKey: ["post", id] });
+      router.push(`/community/${id}`);
+    },
+    onError: (err: any) => {
+      alert("수정 실패: " + err.message);
+    },
+  });
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -49,59 +85,20 @@ export default function EditPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    let imageUrl = imagePreview;
-
-    // 새로운 이미지 파일이 선택되었다면 업로드
-    if (imageFile) {
-      const fileExt = imageFile.name.split(".").pop();
-      const fileName = `${Math.random()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage
-        .from("post-images")
-        .upload(fileName, imageFile);
-
-      if (uploadError) {
-        alert("이미지 업로드 실패: " + uploadError.message);
-        setLoading(false);
-        return;
-      }
-
-      const { data: publicUrlData } = supabase.storage
-        .from("post-images")
-        .getPublicUrl(fileName);
-      imageUrl = publicUrlData.publicUrl;
-    }
-
-    // 게시글 업데이트
-    const { error } = await supabase
-      .from("posts")
-      .update({
-        title,
-        content,
-        category,
-        image_url: imageUrl,
-      })
-      .eq("id", id);
-
-    if (error) alert("수정 실패: " + error.message);
-    else {
-      alert("수정되었습니다!");
-      router.push(`/community/${id}`);
-    }
-    setLoading(false);
-  };
-
-  if (fetching)
+  if (isFetching)
     return <div className="p-10 text-center text-gray-500">불러오는 중...</div>;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 bg-white min-h-screen">
       <h1 className="text-2xl font-bold mb-8">글 수정하기</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          updateMutation.mutate();
+        }}
+        className="space-y-8"
+      >
         {/* 카테고리 선택 */}
         <div>
           <label className="block text-sm font-bold text-gray-700 mb-3">
@@ -167,7 +164,7 @@ export default function EditPage() {
           </div>
         </div>
 
-        {/* 제목 */}
+        {/* 제목 & 내용 */}
         <div>
           <label className="block text-sm font-bold text-gray-700 mb-3">
             제목
@@ -178,11 +175,8 @@ export default function EditPage() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="w-full p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none text-base"
-            placeholder="제목을 입력하세요"
           />
         </div>
-
-        {/* 내용 */}
         <div>
           <label className="block text-sm font-bold text-gray-700 mb-3">
             내용
@@ -192,17 +186,15 @@ export default function EditPage() {
             value={content}
             onChange={(e) => setContent(e.target.value)}
             className="w-full h-48 p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary outline-none text-base resize-none"
-            placeholder="내용을 입력하세요"
           />
         </div>
 
-        {/* 제출 버튼 */}
         <button
           type="submit"
-          disabled={loading}
+          disabled={updateMutation.isPending}
           className="w-full py-4 bg-primary text-white font-bold rounded-xl hover:bg-opacity-90 transition-all disabled:bg-gray-300 shadow-lg"
         >
-          {loading ? "수정 중..." : "수정 완료"}
+          {updateMutation.isPending ? "수정 중..." : "수정 완료"}
         </button>
       </form>
     </div>

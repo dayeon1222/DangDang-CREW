@@ -5,7 +5,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { Location, ParkPlace } from "@/types/common";
-import { Dog } from "lucide-react";
+import { Dog, Search } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 export default function MapPage() {
   const [loading, error] = useKakaoLoader({
@@ -15,14 +16,33 @@ export default function MapPage() {
 
   const [myLoc, setMyLoc] = useState<Location | null>(null);
   const [parks, setParks] = useState<ParkPlace[]>([]);
-  const [walkingCounts, setWalkingCounts] = useState<Record<string, number>>(
-    {},
-  );
-  const [isAiOpen, setIsAiOpen] = useState(false);
-  const [aiResult, setAiResult] = useState<string>(
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchResult, setSearchResult] = useState<string>(
     "강아지 크기를 선택하면 해당 크기의 친구들이 모집 중인 산책 글을 보여드립니다.",
   );
   const router = useRouter();
+
+  // TanStack Query로 10초마다 자동 갱신 및 캐싱 처리
+  const { data: walkingCounts = {} } = useQuery({
+    queryKey: ["walkingCounts"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("dogs")
+        .select("location_id")
+        .neq("status", "완료");
+
+      const counts: Record<string, number> = {};
+      data?.forEach((dog) => {
+        if (dog.location_id) {
+          const locId = String(dog.location_id).trim();
+          counts[locId] = (counts[locId] || 0) + 1;
+        }
+      });
+      return counts;
+    },
+    refetchInterval: 10000,
+    staleTime: 5000,
+  });
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
@@ -57,33 +77,9 @@ export default function MapPage() {
     );
   }, [myLoc]);
 
-  useEffect(() => {
-    const fetchWalkingData = async () => {
-      const { data } = await supabase
-        .from("dogs")
-        .select("location_id")
-        .neq("status", "완료");
-
-      if (data) {
-        const counts: Record<string, number> = {};
-        data.forEach((dog) => {
-          if (dog.location_id) {
-            const locId = String(dog.location_id).trim();
-            counts[locId] = (counts[locId] || 0) + 1;
-          }
-        });
-        setWalkingCounts(counts);
-      }
-    };
-
-    fetchWalkingData();
-    const interval = setInterval(fetchWalkingData, 10000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleAiRecommend = async (size: string) => {
-    setIsAiOpen(true);
-    setAiResult(`${size} 친구들의 산책 모집글을 찾는 중입니다...`);
+  const handleSearchBySize = async (size: string) => {
+    setIsSearchOpen(true);
+    setSearchResult(`${size} 친구들의 산책 모집글을 찾는 중입니다...`);
 
     try {
       const { data, error } = await supabase
@@ -95,17 +91,17 @@ export default function MapPage() {
       if (error) throw error;
 
       if (!data || data.length === 0) {
-        setAiResult(
+        setSearchResult(
           `현재 ${size} 친구와 함께할 수 있는 산책 모집글이 없습니다.`,
         );
       } else {
         const resultText = data
           .map((d, index) => `${index + 1}. [${d.location_name}] ${d.title}`)
           .join("\n");
-        setAiResult(`[${size} 산책 모집 현황]\n\n${resultText}`);
+        setSearchResult(`[${size} 산책 모집 현황]\n\n${resultText}`);
       }
     } catch (err) {
-      setAiResult("모집글을 불러오는 중 오류가 발생했습니다.");
+      setSearchResult("모집글을 불러오는 중 오류가 발생했습니다.");
     }
   };
 
@@ -166,20 +162,20 @@ export default function MapPage() {
 
       {/* Floating Action Buttons */}
       <button
-        onClick={() => setIsAiOpen(!isAiOpen)}
+        onClick={() => setIsSearchOpen(!isSearchOpen)}
         className="fixed bottom-6 right-6 z-20 bg-primary text-white p-4 rounded-full shadow-2xl hover:bg-primary/90 transition-all active:scale-95"
       >
-        <Dog size={24} />
+        <Search size={24} />
       </button>
 
-      {isAiOpen && (
+      {isSearchOpen && (
         <div className="fixed bottom-20 right-4 sm:right-6 z-20 w-[calc(100vw-32px)] sm:w-80 bg-white p-5 rounded-3xl shadow-2xl border border-gray-100">
           <h3 className="font-bold text-lg mb-3">어떤 친구와 산책할까요?</h3>
           <div className="flex gap-2 mb-4">
             {["소형견", "중형견", "대형견"].map((dog_size) => (
               <button
                 key={dog_size}
-                onClick={() => handleAiRecommend(dog_size)}
+                onClick={() => handleSearchBySize(dog_size)}
                 className="flex-1 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary/90 transition-all"
               >
                 {dog_size}
@@ -187,7 +183,7 @@ export default function MapPage() {
             ))}
           </div>
           <div className="p-3 bg-gray-50 rounded-2xl text-sm text-gray-600 max-h-48 overflow-y-auto whitespace-pre-line leading-relaxed">
-            {aiResult}
+            {searchResult}
           </div>
         </div>
       )}

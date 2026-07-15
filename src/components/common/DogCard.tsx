@@ -1,9 +1,12 @@
+"use client";
+
+import { memo } from "react";
 import { MapPin, Users, Clock } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import { DogCardProps } from "@/types/dog";
 
-export default function DogCard({ dog }: DogCardProps) {
+const DogCard = ({ dog }: DogCardProps) => {
   return (
     <div className="flex flex-col h-full bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all group">
       {/* 강아지 사진 */}
@@ -50,4 +53,6 @@ export default function DogCard({ dog }: DogCardProps) {
       </div>
     </div>
   );
-}
+};
+
+export default memo(DogCard);

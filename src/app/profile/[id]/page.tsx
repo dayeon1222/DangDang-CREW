@@ -1,76 +1,73 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { PawPrint, ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import { Profile, Review } from "@/types/user";
 import { Post } from "@/types/community";
+import { useQuery } from "@tanstack/react-query";
 
 export default function ProfilePage() {
   const router = useRouter();
   const params = useParams();
   const userId = params.id as string;
-
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [avgRating, setAvgRating] = useState(0);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
-  const [isOwner, setIsOwner] = useState(false);
 
-  useEffect(() => {
-    if (!userId) return;
-
-    const fetchProfileData = async () => {
+  // 프로필 및 리뷰, 게시글 데이터를 병렬로 페칭
+  const { data, isLoading } = useQuery({
+    queryKey: ["profile-data", userId, page],
+    queryFn: async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      setIsOwner(user?.id === userId);
 
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("id, nickname, bio, avatar_url")
-        .eq("id", userId)
-        .maybeSingle();
+      const [profileRes, reviewsRes, allReviewsRes, postsRes] =
+        await Promise.all([
+          supabase
+            .from("profiles")
+            .select("id, nickname, bio, avatar_url")
+            .eq("id", userId)
+            .maybeSingle(),
+          supabase
+            .from("reviews")
+            .select("id, rating, content, profiles(nickname)")
+            .eq("target_user_id", userId)
+            .range(page * 5, (page + 1) * 5 - 1),
+          supabase
+            .from("reviews")
+            .select("rating")
+            .eq("target_user_id", userId),
+          supabase
+            .from("dogs")
+            .select("id, title, content, created_at")
+            .eq("user_id", userId)
+            .order("created_at", { ascending: false }),
+        ]);
 
-      const { data: allReviews } = await supabase
-        .from("reviews")
-        .select("rating")
-        .eq("target_user_id", userId);
+      const avgRating =
+        allReviewsRes.data && allReviewsRes.data.length > 0
+          ? allReviewsRes.data.reduce((acc, r) => acc + r.rating, 0) /
+            allReviewsRes.data.length
+          : 0;
 
-      if (allReviews && allReviews.length > 0) {
-        const avg =
-          allReviews.reduce((acc, r) => acc + r.rating, 0) / allReviews.length;
-        setAvgRating(avg);
-      }
+      return {
+        profile: profileRes.data as Profile | null,
+        reviews: (reviewsRes.data as Review[]) || [],
+        posts: (postsRes.data as Post[]) || [],
+        avgRating,
+        isOwner: user?.id === userId,
+      };
+    },
+    enabled: !!userId,
+  });
 
-      const { data: reviewsData } = await supabase
-        .from("reviews")
-        .select(`id, rating, content, profiles(nickname)`)
-        .eq("target_user_id", userId)
-        .range(page * 5, (page + 1) * 5 - 1);
-
-      const { data: postsData } = await supabase
-        .from("dogs")
-        .select("id, title, content, created_at")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-
-      setProfile(profileData as Profile | null);
-      setReviews((reviewsData as Review[]) || []);
-      setPosts((postsData as Post[]) || []);
-      setLoading(false);
-    };
-
-    fetchProfileData();
-  }, [userId, page]);
-
-  if (loading)
+  if (isLoading)
     return (
       <div className="p-10 text-center text-gray-500 font-bold">로딩 중...</div>
     );
+
+  const { profile, reviews, posts, avgRating, isOwner } = data!;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
@@ -165,7 +162,7 @@ export default function ProfilePage() {
       <div className="flex justify-center items-center gap-6 py-6 border-t border-gray-100">
         <button
           disabled={page === 0}
-          onClick={() => setPage(page - 1)}
+          onClick={() => setPage((prev) => prev - 1)}
           className="p-3 rounded-full hover:bg-gray-100 disabled:opacity-30 transition"
         >
           <ChevronLeft />
@@ -174,7 +171,7 @@ export default function ProfilePage() {
           {page + 1} 페이지
         </span>
         <button
-          onClick={() => setPage(page + 1)}
+          onClick={() => setPage((prev) => prev + 1)}
           disabled={reviews.length < 5}
           className="p-3 rounded-full hover:bg-gray-100 disabled:opacity-30 transition"
         >

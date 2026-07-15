@@ -67,3 +67,23 @@ Fallback 전략 수립: 서버 API에서 에러 발생 시 500 대신 기본값 
    문제: AI가 JSON 형식이 아닌 서술형 답변을 덧붙이거나 마크다운 문법을 사용하여 JSON.parse 단계에서 구문 오류 발생.
 
 해결: 정규식(match(/\{[\s\S]\*\}/))을 사용하여 응답 텍스트 내에서 JSON 객체 부분만 정확히 추출하는 파싱 로직을 직접 구현하고, 마크다운 기호를 제거하는 전처리 로직을 추가하여 파싱 성공률 100% 달성.
+
+5. TanStack Query 사용 시 "No QueryClient set" 에러
+
+문제 상황 (Problem)
+증상: useQuery를 사용하는 페이지(MapPage)에서 Runtime Error: No QueryClient set, use QueryClientProvider to set one 메시지가 발생하며 화면이 렌더링되지 않음.
+
+원인: TanStack Query는 데이터를 캐싱하고 상태를 관리하기 위해 QueryClient 인스턴스가 필요한데, 애플리케이션 최상위 컴포넌트에서 QueryClientProvider로 감싸져 있지 않아 하위 컴포넌트들이 QueryClient를 찾지 못함.
+
+원인 분석 (Root Cause)
+React Context 활용: TanStack Query는 내부적으로 React Context API를 사용하여 데이터를 공유함. 프로바이더가 없으면 Context를 사용할 수 없음.
+
+서버/클라이언트 컴포넌트 분리: Next.js App Router 환경에서 layout.tsx는 기본적으로 서버 컴포넌트임. 그러나 QueryClientProvider는 use client 선언이 필요한 클라이언트 컴포넌트에서만 동작함. 따라서 서버 컴포넌트인 레이아웃에서 바로 사용할 수 없고, 별도의 클라이언트 컴포넌트로 분리해야 함.
+
+해결 방법 (Solution)
+Step 1: 프로바이더 컴포넌트 생성 (providers.tsx)
+
+클라이언트 컴포넌트로 선언하고, useState를 사용하여 QueryClient 인스턴스를 최초 1회만 안전하게 생성하여 QueryClientProvider에 전달함.
+Step 2: 레이아웃 적용 (layout.tsx)
+
+생성된 Providers 컴포넌트를 RootLayout의 body 내부에 배치하여 전체 애플리케이션에 TanStack Query 환경을 주입함.

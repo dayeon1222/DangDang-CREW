@@ -1,33 +1,24 @@
 "use client";
 
 import { useParams, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { User } from "@supabase/supabase-js";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { WalkingUser, DogData } from "@/types/dog";
 
 export default function ParkDetailPage() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
 
   const locationId = params.id as string;
   const locationName = searchParams.get("name") || "알 수 없는 공원";
 
-  const [users, setUsers] = useState<WalkingUser[]>([]);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const init = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setCurrentUser(user);
-
-      if (!locationId) {
-        setLoading(false);
-        return;
-      }
+  // 산책 중인 유저 데이터 쿼리
+  const { data: users = [], isLoading } = useQuery({
+    queryKey: ["walkingUsers", locationId],
+    queryFn: async () => {
+      if (!locationId) return [];
 
       const { data: dogData } = await supabase
         .from("dogs")
@@ -35,53 +26,67 @@ export default function ParkDetailPage() {
         .eq("location_id", locationId)
         .neq("status", "완료");
 
-      if (dogData && dogData.length > 0) {
-        const userIds = Array.from(
-          new Set(dogData.map((d: DogData) => d.user_id)),
-        );
+      if (!dogData || dogData.length === 0) return [];
 
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("id, nickname, avatar_url")
-          .in("id", userIds);
+      const userIds = Array.from(
+        new Set(dogData.map((d: DogData) => d.user_id)),
+      );
 
-        if (profileData) {
-          const formattedUsers: WalkingUser[] = profileData.map((p) => ({
-            user_id: p.id,
-            nickname: p.nickname || "이름 없음",
-            avatar_url: p.avatar_url || "/default-avatar.png",
-          }));
-          setUsers(formattedUsers);
-        }
-      }
-      setLoading(false);
-    };
-    init();
-  }, [locationId]);
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("id, nickname, avatar_url")
+        .in("id", userIds);
 
-  const toggleWalk = async (isCheckingIn: boolean) => {
-    if (!currentUser) return;
+      return (profileData || []).map((p) => ({
+        user_id: p.id,
+        nickname: p.nickname || "이름 없음",
+        avatar_url: p.avatar_url || "/default-avatar.png",
+      })) as WalkingUser[];
+    },
+    enabled: !!locationId,
+  });
 
-    const { error } = await supabase
-      .from("dogs")
-      .update({
-        location_id: isCheckingIn ? locationId : null,
-        location_name: isCheckingIn ? locationName : null,
-        status: isCheckingIn ? "산책중" : "완료",
-      })
-      .eq("user_id", currentUser.id);
+  // 현재 로그인 유저 정보 쿼리
+  const { data: currentUser } = useQuery({
+    queryKey: ["user"],
+    queryFn: async () => {
+      const { data } = await supabase.auth.getUser();
+      return data.user;
+    },
+    staleTime: Infinity,
+  });
 
-    if (error) alert("잠시 후 다시 시도해주세요.");
-    else window.location.reload();
-  };
+  // 산책 상태 토글 뮤테이션
+  const toggleWalkMutation = useMutation({
+    mutationFn: async (isCheckingIn: boolean) => {
+      if (!currentUser) throw new Error("로그인이 필요합니다.");
 
-  if (loading) {
+      const { error } = await supabase
+        .from("dogs")
+        .update({
+          location_id: isCheckingIn ? locationId : null,
+          location_name: isCheckingIn ? locationName : null,
+          status: isCheckingIn ? "산책중" : "완료",
+        })
+        .eq("user_id", currentUser.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["walkingUsers", locationId] });
+    },
+    onError: () => {
+      alert("잠시 후 다시 시도해주세요.");
+    },
+  });
+
+  if (isLoading) {
     return (
       <div className="p-10 text-center text-gray-500 font-bold">로딩중...</div>
     );
   }
 
-  const isAlreadyWalking = users.find((u) => u.user_id === currentUser?.id);
+  const isAlreadyWalking = users.some((u) => u.user_id === currentUser?.id);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 min-h-screen">
@@ -90,16 +95,19 @@ export default function ParkDetailPage() {
       </h1>
 
       <button
-        onClick={() => toggleWalk(!isAlreadyWalking)}
+        onClick={() => toggleWalkMutation.mutate(!isAlreadyWalking)}
+        disabled={toggleWalkMutation.isPending}
         className={`w-full py-5 rounded-3xl font-bold mb-10 transition-all active:scale-95 shadow-lg ${
           isAlreadyWalking
             ? "bg-red-50 text-red-500 hover:bg-red-100"
             : "bg-primary text-white hover:bg-primary/90"
-        }`}
+        } disabled:opacity-50`}
       >
-        {isAlreadyWalking
-          ? "산책 종료하기 (체크아웃)"
-          : "이 공원에서 산책 시작하기"}
+        {toggleWalkMutation.isPending
+          ? "처리중..."
+          : isAlreadyWalking
+            ? "산책 종료하기 (체크아웃)"
+            : "이 공원에서 산책 시작하기"}
       </button>
 
       <h2 className="font-bold text-lg mb-6 flex items-center gap-2">

@@ -1,51 +1,37 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Home, MapPin, MessageSquare, Dog } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { useQuery } from "@tanstack/react-query";
 
 export default function MobileTabBar() {
   const router = useRouter();
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
 
-  const fetchProfile = async (uid: string) => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("avatar_url")
-      .eq("id", uid)
-      .maybeSingle();
-    setAvatarUrl(data?.avatar_url || null);
-  };
+  // 세션 및 프로필 데이터 관리
+  const { data: userProfile } = useQuery({
+    queryKey: ["user-session"],
+    queryFn: async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session?.user) return { user: null, avatar: null };
 
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.user) {
-        setIsLoggedIn(true);
-        setUserId(data.session.user.id);
-        fetchProfile(data.session.user.id);
-      }
-    };
-    checkUser();
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("avatar_url")
+        .eq("id", sessionData.session.user.id)
+        .maybeSingle();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsLoggedIn(!!session);
-      if (session?.user) {
-        setUserId(session.user.id);
-        fetchProfile(session.user.id);
-      } else {
-        setUserId(null);
-        setAvatarUrl(null);
-      }
-    });
+      return {
+        user: sessionData.session.user,
+        avatar: profile?.avatar_url || null,
+      };
+    },
+    staleTime: 1000 * 60 * 5, // 5분간 캐시
+  });
 
-    return () => subscription.unsubscribe();
-  }, []);
+  const isLoggedIn = !!userProfile?.user;
+  const userId = userProfile?.user?.id;
+  const avatarUrl = userProfile?.avatar;
 
   const handleMyClick = () => {
     if (isLoggedIn && userId) {
@@ -81,6 +67,7 @@ export default function MobileTabBar() {
           <MessageSquare size={20} strokeWidth={2} />
           <span className="tracking-tight">커뮤니티</span>
         </button>
+
         <button
           onClick={handleMyClick}
           className="flex flex-col items-center gap-1 flex-1 py-2 text-gray-600 hover:text-amber-600 transition-colors"

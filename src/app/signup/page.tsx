@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useMutation } from "@tanstack/react-query";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -12,7 +13,21 @@ export default function SignupPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const router = useRouter();
 
-  const handleSignup = async () => {
+  const signupMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      alert("회원가입 성공! 이제 로그인해 주세요.");
+      router.push("/login");
+    },
+    onError: (error: any) => {
+      setErrorMsg(error.message);
+    },
+  });
+
+  const handleSignup = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const passwordRegex = /^(?=.*[a-zA-Z])(?=.*[!@#$%^&*])(?=.*[0-9]).{8,}$/;
 
@@ -31,14 +46,7 @@ export default function SignupPage() {
       return;
     }
 
-    const { error } = await supabase.auth.signUp({ email, password });
-
-    if (error) {
-      setErrorMsg(error.message);
-    } else {
-      alert("회원가입 성공! 이제 로그인해 주세요.");
-      router.push("/login");
-    }
+    signupMutation.mutate();
   };
 
   return (
@@ -91,10 +99,11 @@ export default function SignupPage() {
         </div>
 
         <button
-          className="w-full bg-primary hover:bg-primary-dark text-white p-4 rounded-2xl font-bold mt-8 transition shadow-lg active:scale-[0.98]"
+          className="w-full bg-primary hover:bg-primary-dark text-white p-4 rounded-2xl font-bold mt-8 transition shadow-lg active:scale-[0.98] disabled:bg-gray-400"
           onClick={handleSignup}
+          disabled={signupMutation.isPending}
         >
-          회원가입 하기
+          {signupMutation.isPending ? "회원가입 중..." : "회원가입 하기"}
         </button>
 
         <div className="mt-6 text-center text-xs text-gray-500">

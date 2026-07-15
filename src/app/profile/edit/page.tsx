@@ -1,26 +1,28 @@
 "use client";
 
-import { useState, useEffect, ChangeEvent, useRef } from "react";
+import { useState, useRef, ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { Camera } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function EditProfilePage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [nickname, setNickname] = useState("");
   const [bio, setBio] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [loading, setLoading] = useState(true);
   const [previewUrl, setPreviewUrl] = useState<string>("");
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const fetchProfile = async () => {
+  // 프로필 정보 조회
+  const { isLoading } = useQuery({
+    queryKey: ["profile"],
+    queryFn: async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) return router.push("/login");
+      if (!user) throw new Error("로그인이 필요합니다.");
 
       const { data } = await supabase
         .from("profiles")
@@ -31,13 +33,52 @@ export default function EditProfilePage() {
       if (data) {
         setNickname(data.nickname || "");
         setBio(data.bio || "");
-        setAvatarUrl(data.avatar_url || "");
         setPreviewUrl(data.avatar_url || "");
       }
-      setLoading(false);
-    };
-    fetchProfile();
-  }, [router]);
+      return data;
+    },
+    retry: false,
+  });
+
+  //  프로필 수정 뮤테이션
+  const updateMutation = useMutation({
+    mutationFn: async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("사용자를 찾을 수 없습니다.");
+
+      let avatarUrl = previewUrl;
+
+      if (file) {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+        const { error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(fileName, file);
+        if (uploadError) throw uploadError;
+
+        const { data } = supabase.storage
+          .from("avatars")
+          .getPublicUrl(fileName);
+        avatarUrl = data.publicUrl;
+      }
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({ nickname, bio, avatar_url: avatarUrl })
+        .eq("id", user.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profile"] });
+      alert("프로필이 수정되었습니다!");
+      router.push("/profile");
+    },
+    onError: (error: any) => {
+      alert("수정 실패: " + error.message);
+    },
+  });
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -47,41 +88,7 @@ export default function EditProfilePage() {
     }
   };
 
-  const updateProfile = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-
-    let newAvatarUrl = avatarUrl;
-
-    if (file) {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(fileName, file);
-
-      if (uploadError)
-        return alert("이미지 업로드 실패: " + uploadError.message);
-
-      const { data } = supabase.storage.from("avatars").getPublicUrl(fileName);
-      newAvatarUrl = data.publicUrl;
-    }
-
-    const { error } = await supabase
-      .from("profiles")
-      .update({ nickname, bio, avatar_url: newAvatarUrl })
-      .eq("id", user.id);
-
-    if (error) alert("수정 실패: " + error.message);
-    else {
-      alert("프로필이 수정되었습니다!");
-      router.push("/profile");
-    }
-  };
-
-  if (loading)
+  if (isLoading)
     return (
       <div className="p-10 text-center font-bold text-gray-500">로딩 중...</div>
     );
@@ -90,7 +97,6 @@ export default function EditProfilePage() {
     <div className="max-w-md mx-auto p-6 min-h-screen">
       <h1 className="text-2xl font-bold mb-8 text-secondary">프로필 수정</h1>
 
-      {/* 사진 수정 */}
       <div className="mb-8 flex flex-col items-center">
         <div
           className="relative w-32 h-32 mb-4 group cursor-pointer"
@@ -142,10 +148,11 @@ export default function EditProfilePage() {
       </div>
 
       <button
-        onClick={updateProfile}
-        className="w-full py-4 mt-8 bg-primary text-white rounded-2xl font-bold hover:bg-primary/90 transition shadow-lg active:scale-[0.98]"
+        onClick={() => updateMutation.mutate()}
+        disabled={updateMutation.isPending}
+        className="w-full py-4 mt-8 bg-primary text-white rounded-2xl font-bold hover:bg-primary/90 transition shadow-lg active:scale-[0.98] disabled:bg-gray-400"
       >
-        저장하기
+        {updateMutation.isPending ? "저장 중..." : "저장하기"}
       </button>
     </div>
   );

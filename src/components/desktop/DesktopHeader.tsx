@@ -1,61 +1,45 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Dog } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 export default function DesktopHeader() {
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
-  const fetchProfile = async (uid: string) => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("avatar_url")
-      .eq("id", uid)
-      .maybeSingle();
+  // 세션 및 프로필 데이터 관리
+  const { data: userProfile } = useQuery({
+    queryKey: ["user-session"],
+    queryFn: async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session?.user) return { user: null, avatar: null };
 
-    setAvatarUrl(data?.avatar_url || null);
-  };
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("avatar_url")
+        .eq("id", sessionData.session.user.id)
+        .maybeSingle();
 
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.user) {
-        setIsLoggedIn(true);
-        setUserId(data.session.user.id);
-        fetchProfile(data.session.user.id);
-      }
-    };
-    checkUser();
+      return {
+        user: sessionData.session.user,
+        avatar: profile?.avatar_url || null,
+      };
+    },
+    staleTime: 1000 * 60 * 5, // 5분간 캐시
+  });
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsLoggedIn(!!session);
-      if (session?.user) {
-        setUserId(session.user.id);
-        fetchProfile(session.user.id);
-      } else {
-        setUserId(null);
-        setAvatarUrl(null);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const isLoggedIn = !!userProfile?.user;
+  const userId = userProfile?.user?.id;
+  const avatarUrl = userProfile?.avatar;
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    setIsLoggedIn(false);
-    setAvatarUrl(null);
-    setUserId(null);
-    router.refresh();
+    queryClient.setQueryData(["user-session"], { user: null, avatar: null });
     router.push("/");
+    router.refresh();
   };
 
   const handleProfileClick = () => {
@@ -85,15 +69,12 @@ export default function DesktopHeader() {
             <Link href="/" className="hover:text-amber-600 transition-colors">
               동네피드
             </Link>
-
-            {/* 지도보기 */}
             <Link
               href="/map"
               className="hover:text-amber-600 transition-colors"
             >
               지도보기
             </Link>
-
             <Link
               href="/community"
               className="hover:text-amber-600 transition-colors"
