@@ -33,18 +33,6 @@ export default function DogCard({ dog }: DogCardProps) {
           </div>
         </div>
 
-        {/* 태그 영역 */}
-        <div className="flex flex-wrap gap-1.5 min-h-[24px]">
-          {dog.hashtags?.slice(0, 3).map((tag) => (
-            <span
-              key={tag}
-              className="text-[11px] bg-gray-50 text-gray-500 px-2 py-0.5 rounded-md font-medium"
-            >
-              #{tag}
-            </span>
-          ))}
-        </div>
-
         {/* 하단 요약 */}
         <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-xs text-gray-400">
