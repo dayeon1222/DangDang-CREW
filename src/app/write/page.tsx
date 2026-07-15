@@ -36,7 +36,6 @@ export default function WritePage({
   const [formData, setFormData] = useState<WriteFormData>({
     title: "",
     people: "",
-    hashtag: "",
     content: "",
     dog_size: "",
     deadline: "",
@@ -99,7 +98,6 @@ export default function WritePage({
             title: data.title || "",
             content: data.content || "",
             people: data.people?.toString() || "",
-            hashtag: data.hashtags ? data.hashtags.join(", ") : "",
             dog_size: data.dog_size || "",
             deadline: data.deadline || "",
             status: data.status || "모집중",
@@ -171,10 +169,6 @@ export default function WritePage({
         content: formData.content,
         image_url: finalImageUrl,
         people: parseInt(formData.people, 10),
-        hashtags: formData.hashtag
-          .split(",")
-          .map((t) => t.trim())
-          .filter((t) => t !== ""),
         dog_size: formData.dog_size,
         deadline: formData.deadline,
         location_name: location.name,

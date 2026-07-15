@@ -20,7 +20,6 @@ export interface DogCardProps {
 export interface WriteFormData {
   title: string;
   people: string;
-  hashtag: string;
   content: string;
   dog_size: string;
   deadline: string;
