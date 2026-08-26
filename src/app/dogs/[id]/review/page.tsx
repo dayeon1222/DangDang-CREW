@@ -64,7 +64,7 @@ export default function ReviewPage({
     },
   });
 
-  //  후기 제출 뮤테이션
+  // 후기 제출 뮤테이션
   const submitMutation = useMutation({
     mutationFn: async () => {
       const {
@@ -94,9 +94,35 @@ export default function ReviewPage({
     },
   });
 
+  //로딩 중일 때
   if (isLoading)
     return <div className="p-10 text-center text-gray-500">불러오는 중...</div>;
 
+  // 리뷰를 남길 대상(참여자)이 없을 때
+  if (reviewTargets.length === 0) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-20 bg-white min-h-screen flex flex-col items-center justify-center">
+        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-300">
+          <Dog size={32} />
+        </div>
+        <h1 className="text-xl font-bold mb-2 text-gray-700">
+          함께 산책한 친구가 없어요
+        </h1>
+        <p className="text-gray-500 mb-8 text-center text-sm">
+          아직 산책에 참여한 다른 친구가 없거나,
+          <br />나 외에 후기를 남길 대상이 없습니다.
+        </p>
+        <button
+          onClick={() => router.push(`/dogs/${id}`)}
+          className="px-6 py-3 bg-primary text-white rounded-xl font-bold hover:bg-opacity-90 transition-all shadow-sm"
+        >
+          돌아가기
+        </button>
+      </div>
+    );
+  }
+
+  // 정상적으로 리뷰 대상이 있을 때
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 bg-white min-h-screen">
       <h1 className="text-2xl font-bold mb-8 text-center text-gray-900">
